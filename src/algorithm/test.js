@@ -11,8 +11,7 @@ async function loadMovieData() {
     const reviewsPath = join(__dirname, '../data/reviews.json');
     const rawData = await readFile(reviewsPath, 'utf8');
     const movieData = JSON.parse(rawData);
-    
-    // Add metadata for testing
+
     return [{
       ...movieData,
       // movieId: "tt0816692",
@@ -37,7 +36,7 @@ async function testRecommendationSystem() {
     
     // Example user input
     const userInput = {
-      freeText: "Looking for an intense sci-fi movie with complex plot and inspiring message",
+      freeText: "I wanna louk for a ez film to view, i have only 110 minutes free time to spare and i want to watch a science fiction movie that is intense and exciting",
       age: 25,
       gender: "male",
       preferredDuration: 150,

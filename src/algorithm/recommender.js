@@ -78,7 +78,7 @@ class Recommender {
       } = options;
 
       // Process user input into vector
-      const userVector = this.userProcessor.processUserInput(userInput).vector;
+      const userVector = await this.userProcessor.processUserInput(userInput).vector;
 
       // Calculate similarities and apply weights
       const recommendations = movieDatabase.map(movie => {

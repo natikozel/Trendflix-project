@@ -1,6 +1,6 @@
 import natural from 'natural';
 import { english } from 'stopwords';
-
+import { generateGeminiResponse } from './LLM.js';
 
 class UserInputProcessor {
   constructor() {
@@ -139,75 +139,103 @@ class UserInputProcessor {
     return moodScores;
   }
 
-  processUserInput(input) {
+  async processUserInput(input) {
     try {
       const {
         freeText,
-        age,
-        gender,
-        preferredDuration,
-        additionalParams = {}
+        // age,
+        // gender,
+        // preferredDuration,
+        // additionalParams = {}
       } = input;
 
-      // Process free text input
-      const keywords = this.extractKeywords(freeText);
-      const genres = this.identifyGenres(freeText);
-      const moodScores = this.analyzeMood(freeText);
+      // Process free text input NOT GOOD, NEED LLM
+      // const keywords = this.extractKeywords(freeText);
+      // const genres = this.identifyGenres(freeText);
+      // const moodScores = this.analyzeMood(freeText);
 
-      // Create vector representation
-      const vector = {};
-      
-      // Add keyword weights with importance multiplier
-      keywords.forEach(({term, weight}) => {
-        vector[term] = (this.weights.keywords * weight) / Math.sqrt(keywords.length);
-      });
-
-      // Add genre weights with concept expansion
-      genres.forEach(genre => {
-        vector[genre] = (this.weights.genres * 1.2) / Math.sqrt(genres.length);
-        
-        // Add related concept terms for genres
-        Object.entries(this.conceptMappings).forEach(([concept, related]) => {
-          if (related.includes(genre)) {
-            vector[concept] = (vector[concept] || 0) + 
-              (this.weights.genres * 0.6) / Math.sqrt(genres.length);
-          }
-        });
-      });
-
-      // Add mood weights
-      Object.entries(moodScores).forEach(([mood, score]) => {
-        if (score > 0) {
-          vector[mood] = (this.weights.mood * score) / 
-            Math.sqrt(Object.values(moodScores).reduce((a, b) => a + b, 0));
-        }
-      });
-
-      // Normalize vector using L2 normalization
-      const magnitude = Math.sqrt(
-        Object.values(vector).reduce((sum, weight) => sum + weight * weight, 0)
-      );
-
-      Object.keys(vector).forEach(term => {
-        vector[term] = vector[term] / magnitude;
-      });
-
-      return {
-        processedInput: {
-          keywords: keywords.map(k => k.term),
-          genres,
-          moodScores,
-          demographics: {
-            age,
-            gender
-          },
-          preferences: {
-            preferredDuration,
-            ...additionalParams
+      const userProcessedInput = await generateGeminiResponse(`
+        I'm a movie-recommendation system and I will provide to you a user's free text input.
+        The user's input needs to be processed into a vector representation for recommendation purposes.
+        The vector will be used to calculate similarity scores with movie vectors in the database.
+        The user's input includes keywords and might also include genres, mood scores, demographics, and preferences.
+        The keywords are extracted from the free text input and weighted based on importance.
+        Your task is to return a processed input object with the following structure:
+        {
+          processedInput: {
+            keywords: [String],
+            genres: [String],
+            moodScores: {
+              positive: Number,
+              negative: Number,
+              neutral: Number
+            },
+            demographics: {
+              age: Number,
+            },
+            preferences: [] 
           }
         },
-        vector
-      };
+        Here's the input:
+        ${freeText}
+      `)
+
+      console.log(userProcessedInput)
+
+      // Create vector representation
+      // const vector = {};
+
+      // Add keyword weights with importance multiplier
+      // keywords.forEach(({term, weight}) => {
+      //   vector[term] = (this.weights.keywords * weight) / Math.sqrt(keywords.length);
+      // });
+      //
+      // // Add genre weights with concept expansion
+      // genres.forEach(genre => {
+      //   vector[genre] = (this.weights.genres * 1.2) / Math.sqrt(genres.length);
+      //
+      //   // Add related concept terms for genres
+      //   Object.entries(this.conceptMappings).forEach(([concept, related]) => {
+      //     if (related.includes(genre)) {
+      //       vector[concept] = (vector[concept] || 0) +
+      //         (this.weights.genres * 0.6) / Math.sqrt(genres.length);
+      //     }
+      //   });
+      // });
+      //
+      // // Add mood weights
+      // Object.entries(moodScores).forEach(([mood, score]) => {
+      //   if (score > 0) {
+      //     vector[mood] = (this.weights.mood * score) /
+      //       Math.sqrt(Object.values(moodScores).reduce((a, b) => a + b, 0));
+      //   }
+      // });
+      //
+      // // Normalize vector using L2 normalization
+      // const magnitude = Math.sqrt(
+      //   Object.values(vector).reduce((sum, weight) => sum + weight * weight, 0)
+      // );
+      //
+      // Object.keys(vector).forEach(term => {
+      //   vector[term] = vector[term] / magnitude;
+      // });
+      //
+      // return {
+      //   processedInput: {
+      //     keywords: keywords.map(k => k.term),
+      //     genres,
+      //     moodScores,
+      //     demographics: {
+      //       age,
+      //       gender
+      //     },
+      //     preferences: {
+      //       preferredDuration,
+      //       ...additionalParams
+      //     }
+      //   },
+      //   vector
+      // };
     } catch (error) {
       console.error('Error processing user input:', error);
       throw error;
