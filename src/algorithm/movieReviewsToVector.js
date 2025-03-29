@@ -31,10 +31,14 @@ class VectorProcessor {
       'emotional': ['touching', 'moving', 'powerful', 'heartfelt'],
       'complex': ['complicated', 'intricate', 'deep', 'thought-provoking']
     };
+    
+    console.log("VectorProcessor initialized");
   }
 
   // Preprocess text by removing punctuation, converting to lowercase, and removing stopwords
   preprocessText(text) {
+    // console.log(`Preprocessing text (${text.length} characters)`);
+    
     let processedText = text.toLowerCase();
 
     // Preserve hyphenated words by replacing hyphen with a special marker
@@ -52,6 +56,8 @@ class VectorProcessor {
     const tokens = processedText
       .split(/\s+/)
       .filter(word => !this.stopwords.has(word) && word.length > 2);
+    
+    // console.log(`Preprocessed to ${tokens.length} tokens`);
 
     // Join back into a string for TF-IDF processing
     return tokens.join(' ');
@@ -59,11 +65,44 @@ class VectorProcessor {
 
   // Process reviews and create a TF-IDF vector
   processReviews(reviews) {
+    console.log(`Processing ${reviews ? reviews.length : 'undefined'} reviews`);
+    
+    if (!reviews || reviews.length === 0) {
+      console.error("No reviews found to process");
+      // Return a minimal valid vector to prevent errors downstream
+      return {
+        dimensions: [],
+        vector: {}
+      };
+    }
+    
     // Add all reviews to TF-IDF
-    reviews.forEach(review => {
-      const processedText = this.preprocessText(review.text);
-      this.tfidf.addDocument(processedText);
+    this.tfidf = new n.TfIdf(); // Reset TF-IDF for each batch of reviews
+    
+    reviews.forEach((review, index) => {
+      if (!review || !review.text) {
+        console.error(`Review at index ${index} is missing or has no text property`);
+        return;
+      }
+      
+      try {
+        const processedText = this.preprocessText(review.text);
+        this.tfidf.addDocument(processedText);
+        // console.log(`Added review ${index+1}/${reviews.length} (${processedText.length} characters)`);
+      } catch (error) {
+        console.error(`Error processing review ${index}:`, error.message);
+      }
     });
+    
+    if (this.tfidf.documents.length === 0) {
+      console.error("No documents were successfully added to TF-IDF");
+      return {
+        dimensions: [],
+        vector: {}
+      };
+    }
+
+    console.log(`Successfully processed ${this.tfidf.documents.length} reviews`);
 
     // Extract key terms and their weights
     const vector = {};
@@ -73,6 +112,8 @@ class VectorProcessor {
     this.tfidf.documents.forEach(doc => {
       Object.keys(doc).forEach(term => terms.add(term));
     });
+    
+    console.log(`Found ${terms.size} unique terms across all reviews`);
 
     // Calculate weights for each term
     terms.forEach(term => {
@@ -103,15 +144,25 @@ class VectorProcessor {
         });
       }
     });
+    
+    console.log(`Created vector with ${Object.keys(vector).length} dimensions`);
 
     // Normalize vector weights
     const magnitude = Math.sqrt(
-      Object.values(vector).reduce((sum, weight) => sum + weight * weight, 0)
+      Object.values(vector).reduce((sum, weight) => sum + weight * weight, 0) || 1
     );
+    
+    console.log(`Vector magnitude before normalization: ${magnitude.toFixed(4)}`);
 
     Object.keys(vector).forEach(term => {
       vector[term] = vector[term] / magnitude;
     });
+    
+    // Verify normalization
+    const newMagnitude = Math.sqrt(
+      Object.values(vector).reduce((sum, weight) => sum + weight * weight, 0)
+    );
+    console.log(`Vector magnitude after normalization: ${newMagnitude.toFixed(4)} (should be 1.0)`);
 
     return {
       dimensions: Object.keys(vector),
@@ -121,10 +172,24 @@ class VectorProcessor {
 
   // Process a single movie's reviews and generate its vector representation
   processMovie(movieData) {
+    console.log(`Processing movie: ${movieData.movie_name || movieData.movie_id || 'Unknown'}`);
+    
+    if (!movieData) {
+      console.error("MovieData is undefined or null");
+      throw new Error("Invalid movie data: undefined or null");
+    }
+    
+    if (!movieData.reviews) {
+      console.error("Movie has no reviews property");
+      throw new Error("Missing reviews in movie data");
+    }
+    
     const { reviews } = movieData;
     
     // Process all reviews to create the movie's vector representation
     const { dimensions, vector } = this.processReviews(reviews);
+    
+    console.log(`Finished processing movie. Created vector with ${dimensions.length} dimensions`);
     
     return {
       movieId: movieData.movie_id,
@@ -135,47 +200,47 @@ class VectorProcessor {
   }
 }
 
-// Load and process the movie data
-async function processMovieData() {
-  try {
-    const reviewsPath = join(__dirname, '../data/reviews.json');
-    const rawData = await readFile(reviewsPath, 'utf8');
-    const movieData = JSON.parse(rawData);
+// // Load and process the movie data
+// async function processMovieData() {
+//   try {
+//     const reviewsPath = join(__dirname, '../data/reviews.json');
+//     const rawData = await readFile(reviewsPath, 'utf8');
+//     const movieData = JSON.parse(rawData);
     
-    const processor = new VectorProcessor();
-    const movieVector = processor.processMovie(movieData);
+//     const processor = new VectorProcessor();
+//     const movieVector = processor.processMovie(movieData);
     
-    // Sort vector terms by weight and display
-    // const sortedTerms = Object.entries(movieVector.vector)
-    //   .sort(([,a], [,b]) => b - a)
-    //   .reduce((obj, [key, value]) => {
-    //     obj[key] = value;
-    //     return obj;
-    //   }, {});
+//     // Sort vector terms by weight and display
+//     // const sortedTerms = Object.entries(movieVector.vector)
+//     //   .sort(([,a], [,b]) => b - a)
+//     //   .reduce((obj, [key, value]) => {
+//     //     obj[key] = value;
+//     //     return obj;
+//     //   }, {});
 
-    // console.log('\nTop terms by weight:');
-    // Object.entries(sortedTerms).forEach(([term, weight]) => {
-    //   console.log(`${term}: ${weight.toFixed(4)}`);
-    // });
-    //
-    //
-    // const totalWeight = Object.values(sortedTerms)
-    //   .reduce((sum, weight) => sum + weight, 0);
-    // console.log('\nSum of all weights:', totalWeight.toFixed(4));
-    //
-    //
-    // const sumOfSquares = Object.values(sortedTerms)
-    //   .reduce((sum, weight) => sum + weight * weight, 0);
-    // console.log('\nSum of squares (should be 1.0):', sumOfSquares.toFixed(4));
+//     // console.log('\nTop terms by weight:');
+//     // Object.entries(sortedTerms).forEach(([term, weight]) => {
+//     //   console.log(`${term}: ${weight.toFixed(4)}`);
+//     // });
+//     //
+//     //
+//     // const totalWeight = Object.values(sortedTerms)
+//     //   .reduce((sum, weight) => sum + weight, 0);
+//     // console.log('\nSum of all weights:', totalWeight.toFixed(4));
+//     //
+//     //
+//     // const sumOfSquares = Object.values(sortedTerms)
+//     //   .reduce((sum, weight) => sum + weight * weight, 0);
+//     // console.log('\nSum of squares (should be 1.0):', sumOfSquares.toFixed(4));
 
-    return movieVector;
-  } catch (error) {
-    console.error('Error processing movie data:', error);
-    throw error;
-  }
-}
+//     return movieVector;
+//   } catch (error) {
+//     console.error('Error processing movie data:', error);
+//     throw error;
+//   }
+// }
 
-// Execute the processing
-processMovieData().catch(console.error);
+// // Execute the processing
+// processMovieData().catch(console.error);
 
 export default VectorProcessor;

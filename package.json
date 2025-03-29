@@ -11,10 +11,13 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.0",
+    "@reduxjs/toolkit": "^2.6.1",
     "natural": "^6.10.4",
     "next": "15.2.2",
+    "next-images": "^1.8.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-redux": "^9.2.0",
     "stopwords": "^0.0.9"
   },
   "devDependencies": {

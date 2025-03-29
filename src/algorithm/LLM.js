@@ -58,8 +58,3 @@ export async function generateGeminiResponse(prompt) {
         throw new Error('Failed to generate response from Gemini');
     }
 }
-
-// Example usage:
-// const response = await generateGeminiResponse("Return this as JSON: { name: 'John', age: 30 }");
-// console.log(response.name); // 'John'
-// console.log(response.age); // 30
