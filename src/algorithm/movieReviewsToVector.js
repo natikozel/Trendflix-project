@@ -65,7 +65,6 @@ class VectorProcessor {
 
   // Process reviews and create a TF-IDF vector
   processReviews(reviews) {
-    console.log(`Processing ${reviews ? reviews.length : 'undefined'} reviews`);
     
     if (!reviews || reviews.length === 0) {
       console.error("No reviews found to process");
@@ -102,7 +101,7 @@ class VectorProcessor {
       };
     }
 
-    console.log(`Successfully processed ${this.tfidf.documents.length} reviews`);
+    
 
     // Extract key terms and their weights
     const vector = {};
@@ -113,7 +112,7 @@ class VectorProcessor {
       Object.keys(doc).forEach(term => terms.add(term));
     });
     
-    console.log(`Found ${terms.size} unique terms across all reviews`);
+    
 
     // Calculate weights for each term
     terms.forEach(term => {
@@ -145,14 +144,14 @@ class VectorProcessor {
       }
     });
     
-    console.log(`Created vector with ${Object.keys(vector).length} dimensions`);
+    
 
     // Normalize vector weights
     const magnitude = Math.sqrt(
       Object.values(vector).reduce((sum, weight) => sum + weight * weight, 0) || 1
     );
     
-    console.log(`Vector magnitude before normalization: ${magnitude.toFixed(4)}`);
+    
 
     Object.keys(vector).forEach(term => {
       vector[term] = vector[term] / magnitude;
@@ -162,7 +161,7 @@ class VectorProcessor {
     const newMagnitude = Math.sqrt(
       Object.values(vector).reduce((sum, weight) => sum + weight * weight, 0)
     );
-    console.log(`Vector magnitude after normalization: ${newMagnitude.toFixed(4)} (should be 1.0)`);
+    
 
     return {
       dimensions: Object.keys(vector),
@@ -172,7 +171,7 @@ class VectorProcessor {
 
   // Process a single movie's reviews and generate its vector representation
   processMovie(movieData) {
-    console.log(`Processing movie: ${movieData.movie_name || movieData.movie_id || 'Unknown'}`);
+    
     
     if (!movieData) {
       console.error("MovieData is undefined or null");
@@ -189,7 +188,7 @@ class VectorProcessor {
     // Process all reviews to create the movie's vector representation
     const { dimensions, vector } = this.processReviews(reviews);
     
-    console.log(`Finished processing movie. Created vector with ${dimensions.length} dimensions`);
+    
     
     return {
       movieId: movieData.movie_id,

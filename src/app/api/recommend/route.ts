@@ -1,20 +1,15 @@
 import { NextResponse } from 'next/server';
 import Recommender from '@/algorithm/recommender';
-import { readFile } from 'fs/promises';
-import { join } from 'path';
-
+import { loadMovieData } from "../util"
 export async function POST(request: Request) {
   try {
     const userInput = await request.json();
-    
+    console.log("USERINPUT", userInput)
     // Initialize recommender
     const recommender = new Recommender();
     
     // Load movie data
-    const dataDir = join(process.cwd(), 'src/data');
-    const files = await readFile(join(dataDir, 'movies.json'), 'utf8');
-    const movieDatabase = JSON.parse(files);
-    
+    const movieDatabase = await loadMovieData()
     // Get recommendations
     const recommendations = await recommender.getRecommendations(userInput, movieDatabase, {
       maxResults: 6,

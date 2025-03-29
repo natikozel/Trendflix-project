@@ -52,6 +52,8 @@ class UserInputProcessor {
   // }
 
   customTokenize(text) {
+    if (!text || typeof text !== 'string') return [];
+    
     // First, temporarily replace hyphens in known compound words with a special marker
     const preserveHyphenWords = ['sci-fi'];
     let processedText = text.toLowerCase();
@@ -74,6 +76,8 @@ class UserInputProcessor {
   }
 
   extractKeywords(text) {
+    if (!text) return [];
+    
     const tokens = this.customTokenize(text);
     const keywords = tokens.filter(word => 
       !this.stopwords.has(word) && 
@@ -113,6 +117,8 @@ class UserInputProcessor {
   }
 
   identifyGenres(text) {
+    if (!text) return [];
+    
     const tokens = new Set(this.customTokenize(text));
     return Array.from(this.genres).filter(genre => 
       tokens.has(genre)
@@ -120,6 +126,8 @@ class UserInputProcessor {
   }
 
   analyzeMood(text) {
+    if (!text) return { positive: 0, negative: 0, neutral: 0 };
+    
     const tokens = new Set(this.customTokenize(text));
     const moodScores = {
       positive: 0,
@@ -140,13 +148,18 @@ class UserInputProcessor {
 
   async processUserInput(input) {
     try {
+      if (!input || typeof input !== 'object') {
+        throw new Error('Invalid input: must be an object');
+      }
+
       const {
-        freeText,
-        age,
-        gender,
-        preferredDuration,
-        preferNewReleases,
-        preferredLanguage,
+        freeText = '',
+        age = 25,
+        gender = 'any',
+        preferredDuration = 120,
+        preferNewReleases = false,
+        preferredLanguage = 'English',
+        genres = [],
         ...additionalParams
       } = input;
 
@@ -184,30 +197,40 @@ class UserInputProcessor {
       // Log the response for debugging
       console.log("LLM Processed Input:", JSON.stringify(llmResponse, null, 2));
       
-      // Extract the processed structure from the LLM response
-      const processedData = llmResponse.processedInput;
+      // Extract the processed structure from the LLM response with defaults
+      const processedData = {
+        processedInput: {
+          keywords: Array.isArray(llmResponse?.processedInput?.keywords) ? llmResponse.processedInput.keywords : [],
+          genres: Array.isArray(llmResponse?.processedInput?.genres) ? llmResponse.processedInput.genres : [],
+          moodScores: {
+            positive: Number(llmResponse?.processedInput?.moodScores?.positive) || 0,
+            negative: Number(llmResponse?.processedInput?.moodScores?.negative) || 0,
+            neutral: Number(llmResponse?.processedInput?.moodScores?.neutral) || 0
+          },
+          timeConstraint: Number(llmResponse?.processedInput?.timeConstraint) || null
+        }
+      };
       
       // Create vector representation from the processed data
       const vector = {};
       
       // Add keyword weights
-      if (processedData.keywords && processedData.keywords.length > 0) {
-        // Create weighted keywords by mapping them to our existing knowledge of important terms
-        processedData.keywords.forEach(keyword => {
+      if (processedData.processedInput.keywords.length > 0) {
+        processedData.processedInput.keywords.forEach(keyword => {
           const baseWeight = this.importantTerms.has(keyword) ? 1.5 : 1.0;
-          vector[keyword] = (this.weights.keywords * baseWeight) / Math.sqrt(processedData.keywords.length);
+          vector[keyword] = (this.weights.keywords * baseWeight) / Math.sqrt(processedData.processedInput.keywords.length);
           
           // Add related concept terms
           Object.entries(this.conceptMappings).forEach(([concept, related]) => {
             if (related.includes(keyword)) {
               vector[concept] = (vector[concept] || 0) + 
-                (this.weights.keywords * 0.6) / Math.sqrt(processedData.keywords.length);
+                (this.weights.keywords * 0.6) / Math.sqrt(processedData.processedInput.keywords.length);
               
               // Add other related terms with further reduced weights
               related.forEach(relatedTerm => {
                 if (relatedTerm !== keyword) {
                   vector[relatedTerm] = (vector[relatedTerm] || 0) + 
-                    (this.weights.keywords * 0.3) / Math.sqrt(processedData.keywords.length);
+                    (this.weights.keywords * 0.3) / Math.sqrt(processedData.processedInput.keywords.length);
                 }
               });
             }
@@ -216,34 +239,36 @@ class UserInputProcessor {
       }
       
       // Add genre weights
-      if (processedData.genres && processedData.genres.length > 0) {
-        processedData.genres.forEach(genre => {
-          vector[genre] = (this.weights.genres * 1.2) / Math.sqrt(processedData.genres.length);
+      if (processedData.processedInput.genres.length > 0) {
+        // Combine LLM genres with user-provided genres
+        const allGenres = [...new Set([
+          ...processedData.processedInput.genres,
+          ...(Array.isArray(genres) ? genres : [])
+        ])].map(g => g.toLowerCase());
+
+        allGenres.forEach(genre => {
+          vector[genre] = (this.weights.genres * 1.2) / Math.sqrt(allGenres.length);
           
           // Add related concept terms for genres
           Object.entries(this.conceptMappings).forEach(([concept, related]) => {
             if (related.includes(genre)) {
               vector[concept] = (vector[concept] || 0) +
-                (this.weights.genres * 0.6) / Math.sqrt(processedData.genres.length);
+                (this.weights.genres * 0.6) / Math.sqrt(allGenres.length);
             }
           });
         });
       }
       
       // Add mood weights
-      if (processedData.moodScores) {
-        const moodSum = 
-          processedData.moodScores.positive +
-          processedData.moodScores.negative +
-          processedData.moodScores.neutral;
-        
-        if (moodSum > 0) {
-          Object.entries(processedData.moodScores).forEach(([mood, score]) => {
-            if (score > 0) {
-              vector[mood] = (this.weights.mood * score) / moodSum;
-            }
-          });
-        }
+      const moodScores = processedData.processedInput.moodScores;
+      const moodSum = moodScores.positive + moodScores.negative + moodScores.neutral;
+      
+      if (moodSum > 0) {
+        Object.entries(moodScores).forEach(([mood, score]) => {
+          if (score > 0) {
+            vector[mood] = (this.weights.mood * score) / moodSum;
+          }
+        });
       }
       
       // Add demographic and preference information
@@ -254,16 +279,18 @@ class UserInputProcessor {
       if (preferredLanguage) vector[`language_${preferredLanguage.toLowerCase()}`] = 0.5;
       
       // Add any additional parameters
-      Object.entries(additionalParams).forEach(([key, value]) => {
-        if (typeof value === 'number') {
-          vector[key] = value / 10; // Normalize numeric values
-        } else if (typeof value === 'boolean' && value) {
-          vector[key] = 0.5;
-        } else if (typeof value === 'string') {
-          vector[`pref_${value.toLowerCase()}`] = 0.3;
-        }
-      });
-      
+      if (additionalParams && typeof additionalParams === 'object') {
+        Object.entries(additionalParams).forEach(([key, value]) => {
+          if (typeof value === 'number') {
+            vector[key] = value / 10; // Normalize numeric values
+          } else if (typeof value === 'boolean' && value) {
+            vector[key] = 0.5;
+          } else if (typeof value === 'string') {
+            vector[`pref_${value.toLowerCase()}`] = 0.3;
+          }
+        });
+      }
+
       // Normalize vector using L2 normalization
       const magnitude = Math.sqrt(
         Object.values(vector).reduce((sum, weight) => sum + weight * weight, 0) || 1
@@ -276,7 +303,7 @@ class UserInputProcessor {
       // Combine processed data with the user's original input
       const result = {
         processedInput: {
-          ...processedData,
+          ...processedData.processedInput,
           demographics: {
             age,
             gender
@@ -294,7 +321,31 @@ class UserInputProcessor {
       return result;
     } catch (error) {
       console.error('Error processing user input:', error);
-      throw error;
+      // Return a default vector with basic preferences
+      return {
+        processedInput: {
+          keywords: [],
+          genres: [],
+          moodScores: { positive: 0, negative: 0, neutral: 0 },
+          timeConstraint: null,
+          demographics: {
+            age: 25,
+            gender: 'any'
+          },
+          preferences: {
+            preferredDuration: 120,
+            preferNewReleases: false,
+            preferredLanguage: 'English'
+          }
+        },
+        vector: {
+          age: 0.25,
+          gender_any: 0.5,
+          preferredDuration: 0.6,
+          newReleases: 0,
+          language_english: 0.5
+        }
+      };
     }
   }
 }

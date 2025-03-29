@@ -1,0 +1,7 @@
+<svg width="300" height="450" viewBox="0 0 300 450" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="450" fill="#1F2937"/>
+  <path d="M150 165C161.046 165 170 156.046 170 145C170 133.954 161.046 125 150 125C138.954 125 130 133.954 130 145C130 156.046 138.954 165 150 165Z" fill="#4B5563"/>
+  <path d="M190 205V215C190 226.046 181.046 235 170 235H130C118.954 235 110 226.046 110 215V205C110 193.954 118.954 185 130 185H170C181.046 185 190 193.954 190 205Z" fill="#4B5563"/>
+  <text x="150" y="285" text-anchor="middle" font-family="system-ui" font-size="24" fill="#6B7280">No Poster Available</text>
+  <text x="150" y="315" text-anchor="middle" font-family="system-ui" font-size="16" fill="#4B5563">Movie poster will be displayed here</text>
+</svg> 

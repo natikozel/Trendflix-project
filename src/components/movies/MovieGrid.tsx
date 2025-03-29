@@ -3,14 +3,13 @@
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import MovieCard from './MovieCard';
-import Loading from '../common/Loading';
+import LoadingSpinner from '../common/Loading';
 
 const MovieGrid = () => {
   const recommendations = useSelector((state: RootState) => state.recommendations.items);
   const isLoading = useSelector((state: RootState) => state.recommendations.isLoading);
-
   if (isLoading) {
-    return <Loading />;
+    return <LoadingSpinner />;
   }
 
   if (!recommendations || recommendations.length === 0) {

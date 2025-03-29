@@ -31,7 +31,7 @@ const MovieCard = ({ movie }: MovieCardProps) => {
   };
 
   return (
-    <Link href={`/movies/${movie.movieId}`}>
+    <Link href={`/movie/${movie.movieId}`}>
       <div
         className="relative bg-gray-800 rounded-lg overflow-hidden transition-transform duration-300 hover:scale-105"
         onMouseEnter={() => setIsHovered(true)}
@@ -79,13 +79,13 @@ const MovieCard = ({ movie }: MovieCardProps) => {
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-400">Match Score</span>
               <span className="text-sm font-medium text-blue-400">
-                {(parseFloat(movie.similarity) * 100).toFixed(0)}%
+                {(parseFloat(movie.similarity) * 1000).toFixed(0)}%
               </span>
             </div>
             <div className="h-1 bg-gray-700 rounded-full mt-1">
               <div
                 className="h-full bg-blue-500 rounded-full"
-                style={{ width: `${parseFloat(movie.similarity) * 100}%` }}
+                style={{ width: `${parseFloat(movie.similarity) * 1000}%` }}
               />
             </div>
           </div>

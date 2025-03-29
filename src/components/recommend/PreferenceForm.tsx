@@ -1,27 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { setRecommendations } from '@/store/recommendationsSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { setLoading, setRecommendations } from '@/store/recommendationsSlice';
 import TextInput from './TextInput';
 import DurationSlider from './DurationSlider';
 import GenreSelector from './GenreSelector';
+import { RootState } from '@/store/store';
+import { motion } from 'framer-motion';
 
 const PreferenceForm = () => {
   const dispatch = useDispatch();
-  const [isLoading, setIsLoading] = useState(false);
+  const isLoading = useSelector((state: RootState) => state?.recommendations.isLoading);
   const [formData, setFormData] = useState({
     freeText: '',
     age: 25,
     gender: 'any',
     preferredDuration: 120,
     preferredLanguage: 'English',
-    preferNewReleases: false
+    preferNewReleases: false,
+    genres: []
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    dispatch(setLoading(true));
 
     try {
       const response = await fetch('/api/recommend', {
@@ -42,11 +45,11 @@ const PreferenceForm = () => {
       console.error('Error getting recommendations:', error);
       // TODO: Add error handling UI
     } finally {
-      setIsLoading(false);
+      dispatch(setLoading(false));
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -55,9 +58,15 @@ const PreferenceForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label htmlFor="freeText" className="block text-sm font-medium mb-2">
+    <motion.form 
+      onSubmit={handleSubmit} 
+      className="space-y-8"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="space-y-2">
+        <label htmlFor="freeText" className="block text-sm font-medium text-gray-200">
           Tell us what kind of movies you like
         </label>
         <TextInput
@@ -70,9 +79,9 @@ const PreferenceForm = () => {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="age" className="block text-sm font-medium mb-2">
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label htmlFor="age" className="block text-sm font-medium text-gray-200">
             Age
           </label>
           <input
@@ -83,13 +92,13 @@ const PreferenceForm = () => {
             onChange={handleChange}
             min="13"
             max="100"
-            className="w-full px-3 py-2 bg-gray-700 rounded-md"
+            className="w-full px-4 py-2.5 bg-gray-700/50 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
             required
           />
         </div>
 
-        <div>
-          <label htmlFor="gender" className="block text-sm font-medium mb-2">
+        <div className="space-y-2">
+          <label htmlFor="gender" className="block text-sm font-medium text-gray-200">
             Gender
           </label>
           <select
@@ -97,7 +106,7 @@ const PreferenceForm = () => {
             name="gender"
             value={formData.gender}
             onChange={handleChange}
-            className="w-full px-3 py-2 bg-gray-700 rounded-md"
+            className="w-full px-4 py-2.5 bg-gray-700/50 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
             required
           >
             <option value="any">Any</option>
@@ -108,8 +117,8 @@ const PreferenceForm = () => {
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-2">
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-200">
           Preferred Movie Duration
         </label>
         <DurationSlider
@@ -118,8 +127,8 @@ const PreferenceForm = () => {
         />
       </div>
 
-      <div>
-        <label htmlFor="preferredLanguage" className="block text-sm font-medium mb-2">
+      <div className="space-y-2">
+        <label htmlFor="preferredLanguage" className="block text-sm font-medium text-gray-200">
           Preferred Language
         </label>
         <select
@@ -127,7 +136,7 @@ const PreferenceForm = () => {
           name="preferredLanguage"
           value={formData.preferredLanguage}
           onChange={handleChange}
-          className="w-full px-3 py-2 bg-gray-700 rounded-md"
+          className="w-full px-4 py-2.5 bg-gray-700/50 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
           required
         >
           <option value="English">English</option>
@@ -135,41 +144,55 @@ const PreferenceForm = () => {
           <option value="French">French</option>
           <option value="German">German</option>
           <option value="Japanese">Japanese</option>
+          <option value="Korean">Korean</option>
+          <option value="Chinese">Chinese</option>
+          <option value="Hindi">Hindi</option>
         </select>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-2">
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-200">
           Preferred Genres
         </label>
         <GenreSelector
-          selectedGenres={formData.genres || []}
+          selectedGenres={formData.genres}
           onChange={(genres) => setFormData(prev => ({ ...prev, genres }))}
         />
       </div>
 
-      <div className="flex items-center">
+      <div className="flex items-center space-x-3 bg-gray-700/30 p-4 rounded-lg">
         <input
           type="checkbox"
           id="preferNewReleases"
           name="preferNewReleases"
           checked={formData.preferNewReleases}
           onChange={handleChange}
-          className="h-4 w-4 text-blue-600 rounded border-gray-300"
+          className="h-5 w-5 rounded border-gray-500 text-blue-500 focus:ring-blue-500/20 transition-all duration-200"
         />
-        <label htmlFor="preferNewReleases" className="ml-2 text-sm">
+        <label htmlFor="preferNewReleases" className="text-sm text-gray-200">
           Prefer newer releases
         </label>
       </div>
 
-      <button
+      <motion.button
         type="submit"
         disabled={isLoading}
-        className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] focus:ring-2 focus:ring-blue-500/20"
+        whileTap={{ scale: 0.98 }}
       >
-        {isLoading ? 'Getting Recommendations...' : 'Get Recommendations'}
-      </button>
-    </form>
+        {isLoading ? (
+          <div className="flex items-center justify-center space-x-2">
+            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Getting Recommendations...</span>
+          </div>
+        ) : (
+          'Get Recommendations'
+        )}
+      </motion.button>
+    </motion.form>
   );
 };
 

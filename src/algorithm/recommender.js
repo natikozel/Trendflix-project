@@ -10,7 +10,7 @@ class Recommender {
 
   // Calculate cosine similarity between two vectors
   calculateCosineSimilarity(vectorA, vectorB) {
-    console.log(`Calculating similarity between vectors with ${Object.keys(vectorA).length} and ${Object.keys(vectorB).length} dimensions`);
+    
     
     // Get all unique dimensions
     const dimensions = new Set([
@@ -120,7 +120,7 @@ class Recommender {
         userVector = processedData.vector;
         userPreferences = processedData.processedInput.preferences;
       }
-      
+      console.log("Processed final user input", userVector)
       console.log(`User vector created with ${Object.keys(userVector).length} dimensions`);
       console.log("User preferences:", JSON.stringify(userPreferences, null, 2));
 
