@@ -1,8 +1,7 @@
 import n from 'natural'
 import { english } from 'stopwords';
-import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -199,47 +198,5 @@ class VectorProcessor {
   }
 }
 
-// // Load and process the movie data
-// async function processMovieData() {
-//   try {
-//     const reviewsPath = join(__dirname, '../data/reviews.json');
-//     const rawData = await readFile(reviewsPath, 'utf8');
-//     const movieData = JSON.parse(rawData);
-    
-//     const processor = new VectorProcessor();
-//     const movieVector = processor.processMovie(movieData);
-    
-//     // Sort vector terms by weight and display
-//     // const sortedTerms = Object.entries(movieVector.vector)
-//     //   .sort(([,a], [,b]) => b - a)
-//     //   .reduce((obj, [key, value]) => {
-//     //     obj[key] = value;
-//     //     return obj;
-//     //   }, {});
-
-//     // console.log('\nTop terms by weight:');
-//     // Object.entries(sortedTerms).forEach(([term, weight]) => {
-//     //   console.log(`${term}: ${weight.toFixed(4)}`);
-//     // });
-//     //
-//     //
-//     // const totalWeight = Object.values(sortedTerms)
-//     //   .reduce((sum, weight) => sum + weight, 0);
-//     // console.log('\nSum of all weights:', totalWeight.toFixed(4));
-//     //
-//     //
-//     // const sumOfSquares = Object.values(sortedTerms)
-//     //   .reduce((sum, weight) => sum + weight * weight, 0);
-//     // console.log('\nSum of squares (should be 1.0):', sumOfSquares.toFixed(4));
-
-//     return movieVector;
-//   } catch (error) {
-//     console.error('Error processing movie data:', error);
-//     throw error;
-//   }
-// }
-
-// // Execute the processing
-// processMovieData().catch(console.error);
 
 export default VectorProcessor;
