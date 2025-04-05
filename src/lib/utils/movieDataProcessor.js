@@ -31,7 +31,7 @@ export function normalizeMovieData(movieData, filename = '') {
   
   // Normalize field names (handle camelCase vs snake_case)
   normalized.releaseYear = normalized.release_year || normalized.releaseYear;
-  normalized.imdbRating = normalized.imdb_rating || normalized.imdbRating;
+  normalized.rating = normalized.rating || normalized.rating;
   normalized.posterUrl = normalized.poster_url || normalized.posterUrl;
   
   // Ensure arrays exist
@@ -75,9 +75,9 @@ export function convertToDbFormat(movieData, vectorData = null) {
     synopsis: movieData.synopsis || '',
     reviews: movieData.reviews || [],
     popularity: typeof movieData.popularity === 'number' ? movieData.popularity : null,
-    imdbRating: typeof movieData.imdbRating === 'number' ? 
-                movieData.imdbRating : 
-                (typeof movieData.imdb_rating === 'number' ? movieData.imdb_rating : null),
+    rating: typeof movieData.rating === 'number' ? 
+                movieData.rating : 
+                (typeof movieData.rating === 'number' ? movieData.rating : null),
     posterUrl: movieData.posterUrl || movieData.poster_url || '',
     updatedAt: Date.now()
   };

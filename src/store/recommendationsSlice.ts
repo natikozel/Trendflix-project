@@ -6,7 +6,7 @@ interface Movie {
   similarity: string;
   finalScore: string;
   metadata: {
-    imdbRating?: number;
+    rating?: number;
     releaseYear?: number;
     duration?: number;
     popularityScore?: number;

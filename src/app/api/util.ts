@@ -8,7 +8,7 @@ interface MovieReview {
 interface Movie {
   movie_id: string;
   movie_name: string;
-  imdbRating?: number;
+  rating?: number;
   releaseYear?: number;
   duration?: number;
   popularityScore?: number;
@@ -35,7 +35,7 @@ export async function loadMovieData(): Promise<Movie[]> {
           const movie: Movie = {
             movie_id: data.movie_id || file.replace('.json', ''),
             movie_name: data.movie_name || data.movie_id || 'Unknown Movie',
-            imdbRating: data.imdbRating,
+            rating: data.rating,
             releaseYear: data.releaseYear,
             duration: data.duration,
             popularityScore: data.popularityScore,
@@ -84,7 +84,7 @@ export function cleanMovieData(movie: Movie): Movie {
   return {
     movie_id: movie.movie_id || 'unknown',
     movie_name: movie.movie_name || 'Unknown Movie',
-    imdbRating: typeof movie.imdbRating === 'number' ? movie.imdbRating : undefined,
+    rating: typeof movie.rating === 'number' ? movie.rating : undefined,
     releaseYear: typeof movie.releaseYear === 'number' ? movie.releaseYear : undefined,
     duration: typeof movie.duration === 'number' ? movie.duration : undefined,
     popularityScore: typeof movie.popularityScore === 'number' ? movie.popularityScore : undefined,

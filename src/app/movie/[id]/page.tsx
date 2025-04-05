@@ -45,7 +45,7 @@ async function getDummyMovie(): Promise<Movie> {
     movie_id: "1",
     movie_name: "Interstellar",
     posterUrl, // This will be the TMDB poster URL
-    imdbRating: 8.6,
+    rating: 8.6,
     releaseYear: 2014,
     duration: 169,
     genres: ["Sci-Fi", "Adventure", "Drama", "Space"],

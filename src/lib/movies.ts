@@ -16,7 +16,7 @@ export interface Movie {
   movie_id: string;
   movie_name: string;
   posterUrl?: string;
-  imdbRating?: number;
+  rating?: number;
   releaseYear?: number;
   duration?: number;
   genres?: string[];
@@ -31,7 +31,7 @@ interface RecommenderResult {
   similarity: string;
   finalScore: number;
   metadata?: {
-    imdbRating: number;
+    rating: number;
     releaseYear: number;
     duration: number;
     popularityScore: number;
@@ -45,7 +45,7 @@ function isMovie(obj: any): obj is Movie {
     typeof obj.movie_id === 'string' &&
     typeof obj.movie_name === 'string' &&
     (obj.posterUrl === undefined || typeof obj.posterUrl === 'string') &&
-    (obj.imdbRating === undefined || typeof obj.imdbRating === 'number') &&
+    (obj.rating === undefined || typeof obj.rating === 'number') &&
     (obj.releaseYear === undefined || typeof obj.releaseYear === 'number') &&
     (obj.duration === undefined || typeof obj.duration === 'number') &&
     (obj.genres === undefined || (Array.isArray(obj.genres) && obj.genres.every((g: any) => typeof g === 'string'))) &&
@@ -100,7 +100,7 @@ export async function getSimilarMovies(movieId: string, limit: number = 6): Prom
         movie_id: "tt0816692",
         movie_name: "Interstellar",
         posterUrl: "https://m.media-amazon.com/images/M/MV5BZjdkOTU3MDktN2IxOS00OGEyLWFmMjktY2FiMmZkNWIyODZiXkEyXkFqcGdeQXVyMTMxODk2OTU@._V1_.jpg",
-        imdbRating: 8.6,
+        rating: 8.6,
         releaseYear: 2014,
         duration: 169,
         genres: ["Adventure", "Drama", "Sci-Fi"],
@@ -123,7 +123,7 @@ export async function getSimilarMovies(movieId: string, limit: number = 6): Prom
         movie_id: "tt1375666",
         movie_name: "Inception",
         posterUrl: "https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_.jpg",
-        imdbRating: 8.8,
+        rating: 8.8,
         releaseYear: 2010,
         duration: 148,
         genres: ["Action", "Adventure", "Sci-Fi"],

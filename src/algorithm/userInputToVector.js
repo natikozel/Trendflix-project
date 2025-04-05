@@ -184,7 +184,6 @@ class UserInputProcessor {
               "negative": number from 0-10,
               "neutral": number from 0-10
             },
-            "timeConstraint": number in minutes or null
           }
         }
 

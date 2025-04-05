@@ -13,7 +13,7 @@ interface MovieHeroProps {
     releaseYear?: number;
     duration?: number;
     genres?: string[];
-    imdbRating?: number;
+    rating?: number;
   };
 }
 
@@ -65,9 +65,9 @@ export default function MovieHero({ movie }: MovieHeroProps) {
             <div className="flex flex-wrap gap-2 items-center mb-4">
               {movie.releaseYear && <span className="text-gray-300">{movie.releaseYear}</span>}
               {movie.duration && <span className="text-gray-300">{Math.floor(movie.duration / 60)}h {movie.duration % 60}m</span>}
-              {movie.imdbRating && (
+              {movie.rating && (
                 <span className="bg-yellow-500 text-black px-2 py-1 rounded font-bold text-sm">
-                  IMDb {movie.imdbRating.toFixed(1)}
+                  Rating {movie.rating.toFixed(1)}
                 </span>
               )}
             </div>
