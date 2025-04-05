@@ -1,19 +1,17 @@
 import { NextResponse } from 'next/server';
-import Recommender from '@/algorithm/recommender';
-import { loadMovieData } from "../util"
+import Recommender from '@/algorithm/recommender.js';
+
+// Create a new recommender instance
+const recommender = new Recommender();
+
 export async function POST(request: Request) {
   try {
     const userInput = await request.json();
-    console.log("USERINPUT", userInput)
-    // Initialize recommender
-    const recommender = new Recommender();
     
-    // Load movie data
-    const movieDatabase = await loadMovieData()
-    // Get recommendations
-    const recommendations = await recommender.getRecommendations(userInput, movieDatabase, {
-      maxResults: 6,
-      similarityThreshold: 0.01,
+    // Get recommendations with lower threshold to ensure we get more results
+    const recommendations = await recommender.getRecommendations(userInput, {
+      maxResults: 5,
+      similarityThreshold: 0.02, // Lower threshold to get more results
       includeMetadata: true
     });
     

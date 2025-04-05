@@ -2,7 +2,7 @@
 
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
-import MovieCard from './MovieCard';
+import MovieCard, { Movie } from './MovieCard';
 import LoadingSpinner from '../common/Loading';
 
 const MovieGrid = () => {
@@ -26,7 +26,7 @@ const MovieGrid = () => {
       {recommendations.map((movie) => (
         <MovieCard
           key={movie.movieId}
-          movie={movie}
+          movie={movie as Movie}
         />
       ))}
     </div>

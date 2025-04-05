@@ -447,5 +447,15 @@
     {
       "text": "Demme has created a supremely sensuous and hypnotic thriller, one that's likely to become his first major hit."
     }
-  ]
+  ],
+  "release_year": 1991,
+  "duration": 119,
+  "genres": [
+    "Mystery & Thriller",
+    "Crime",
+    "Drama"
+  ],
+  "synopsis": "Jodie Foster stars as Clarice Starling, a top student at the FBI's training academy. Jack Crawford (Scott Glenn) wants Clarice to interview Dr. Hannibal Lecter (Anthony Hopkins), a brilliant psychiatrist who is also a violent psychopath, serving life behind bars for various acts of murder and cannibalism. Crawford believes that Lecter may have insight into a case and that Starling, as an attractive young woman, may be just the bait to draw him out.",
+  "popularity": 9.5,
+  "poster_url": "https://image.tmdb.org/t/p/original/uS9m8OBk1A8eM9I042bx8XXpqAq.jpg"
 }

@@ -191,7 +191,14 @@ class VectorProcessor {
     
     return {
       movieId: movieData.movie_id,
-      movieName: movieData.movie_name,
+      movieName: movieData.movie_name,      
+      posterUrl : movieData.poster_url,
+      rating : movieData.popularity,
+      releaseYear: movieData.release_year,
+      duration: movieData.duration,
+      genres: movieData.genres,
+      synopsis: movieData.synopsis,
+      reviews: reviews,
       vector: vector,
       dimensions: dimensions
     };

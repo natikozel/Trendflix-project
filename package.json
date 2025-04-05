@@ -7,7 +7,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "init-db": "node src/scripts/initializeMovieDatabase"
+
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.0",

@@ -765,5 +765,15 @@
     {
       "text": "The events of that cold April night and their detailed reconstruction are so dramatic and so well represented here, that you really do feel as if you are there with Jack and Rose."
     }
-  ]
+  ],
+  "release_year": 1997,
+  "duration": 195,
+  "genres": [
+    "History",
+    "Drama",
+    "Romance"
+  ],
+  "synopsis": "Two young lovers from completely different backgrounds meet and fall in love on the ill-fated maiden voyage of the unsinkable R.M.S. Titanic.",
+  "popularity": 6.9,
+  "poster_url": "https://image.tmdb.org/t/p/original/9xjZS2rlVxm8SFx8kPC3aIGCOYQ.jpg"
 }

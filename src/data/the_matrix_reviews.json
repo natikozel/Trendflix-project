@@ -1,5 +1,5 @@
 {
-  "movie_name": "matrix",
+  "movie_name": "The Matrix",
   "movie_id": "matrix",
   "total_reviews": 210,
   "reviews": [
@@ -633,5 +633,15 @@
     {
       "text": "The visuals are just amazing! And not just the slow motion, fancy camera work either. The mood which is set by the lighting and the angles used in the fight scenes both add to the action and the atmosphere."
     }
-  ]
+  ],
+  "release_year": 1999,
+  "duration": 136,
+  "genres": [
+    "Sci-Fi",
+    "Action",
+    "Mystery & Thriller"
+  ],
+  "synopsis": "Neo believes that Morpheus, an elusive figure considered to be the most dangerous man alive, can answer his question -- What is the Matrix? Neo is contacted by Trinity, a beautiful stranger who leads him into an underworld where he meets Morpheus. They fight a brutal battle for their lives against a cadre of viciously intelligent secret agents. It is a truth that could cost Neo something more precious than his life.",
+  "popularity": 8.5,
+  "poster_url": "https://image.tmdb.org/t/p/original/dXNAPwY7VrqMAo51EKhhCJfaGb5.jpg"
 }

@@ -1,5 +1,6 @@
 import VectorProcessor from './movieReviewsToVector.js';
 import UserInputProcessor from './userInputToVector.js';
+import movieDatabaseService from '../lib/db/services/MovieDatabaseService.js';
 
 class Recommender {
   constructor() {
@@ -8,58 +9,125 @@ class Recommender {
     console.log("Recommender initialized");
   }
 
-  // Calculate cosine similarity between two vectors
+  // Calculate cosine similarity between two vectors (handles both objects and Maps)
   calculateCosineSimilarity(vectorA, vectorB) {
-    
-    
-    // Get all unique dimensions
-    const dimensions = new Set([
-      ...Object.keys(vectorA),
-      ...Object.keys(vectorB)
-    ]);
-
-    // Calculate dot product
-    let dotProduct = 0;
-    let magnitudeA = 0;
-    let magnitudeB = 0;
-
-    dimensions.forEach(dim => {
-      const a = vectorA[dim] || 0;
-      const b = vectorB[dim] || 0;
-      dotProduct += a * b;
-      magnitudeA += a * a;
-      magnitudeB += b * b;
-    });
-
-    // Calculate magnitudes
-    magnitudeA = Math.sqrt(magnitudeA);
-    magnitudeB = Math.sqrt(magnitudeB);
-    
-    console.log(`Vector magnitudes: A=${magnitudeA.toFixed(4)}, B=${magnitudeB.toFixed(4)}`);
-
-    // Return cosine similarity
-    if (magnitudeA === 0 || magnitudeB === 0) {
-      console.log("Warning: Zero magnitude detected, returning similarity of 0");
-      return 0; // Avoid division by zero
+    // Safety check for inputs
+    if (!vectorA || !vectorB) {
+      console.error('Invalid vectors provided to cosine similarity calculation');
+      return 0;
     }
-    
-    const similarity = dotProduct / (magnitudeA * magnitudeB);
-    console.log(`Calculated similarity: ${similarity.toFixed(4)}`);
-    return similarity;
+
+    try {
+      // Determine what type of vectors we're dealing with
+      const isMapA = vectorA instanceof Map;
+      const isMapB = vectorB instanceof Map;
+      
+      // Helper to safely get a value from either Map or object
+      const getValue = (vector, isMap, key) => {
+        if (isMap) {
+          return vector.has(key) ? vector.get(key) : 0;
+        } else {
+          return vector[key] || 0;
+        }
+      };
+      
+      // Get all unique dimensions
+      const dimensions = new Set();
+      
+      // Add keys from vectorA
+      if (isMapA) {
+        for (const key of vectorA.keys()) {
+          dimensions.add(key);
+        }
+      } else {
+        Object.keys(vectorA).forEach(key => dimensions.add(key));
+      }
+      
+      // Add keys from vectorB
+      if (isMapB) {
+        for (const key of vectorB.keys()) {
+          dimensions.add(key);
+        }
+      } else {
+        Object.keys(vectorB).forEach(key => dimensions.add(key));
+      }
+      
+      if (dimensions.size === 0) {
+        console.warn('No dimensions found in vectors');
+        return 0;
+      }
+
+      // Calculate dot product
+      let dotProduct = 0;
+      let magnitudeA = 0;
+      let magnitudeB = 0;
+      let sharedDimensions = 0;
+
+      dimensions.forEach(dim => {
+        const a = getValue(vectorA, isMapA, dim);
+        const b = getValue(vectorB, isMapB, dim);
+        
+        // Check for valid numbers
+        if (isNaN(a) || isNaN(b)) {
+          console.warn(`Invalid value found in vectors: ${dim}, A=${a}, B=${b}`);
+          return; // Skip this dimension
+        }
+        
+        // Track shared dimensions with non-zero values
+        if (a !== 0 && b !== 0) {
+          sharedDimensions++;
+        }
+        
+        dotProduct += a * b;
+        magnitudeA += a * a;
+        magnitudeB += b * b;
+      });
+
+      // Calculate magnitudes, with safety checks
+      magnitudeA = Math.sqrt(Math.max(0, magnitudeA));
+      magnitudeB = Math.sqrt(Math.max(0, magnitudeB));
+      
+      // Return cosine similarity with safety checks
+      if (magnitudeA === 0 || magnitudeB === 0) {
+        console.warn("Zero magnitude detected, returning similarity of 0");
+        console.log(`Vector A has ${isMapA ? vectorA.size : Object.keys(vectorA).length} non-zero dimensions`);
+        console.log(`Vector B has ${isMapB ? vectorB.size : Object.keys(vectorB).length} non-zero dimensions`);
+        return 0; // Avoid division by zero
+      }
+      
+      const similarity = dotProduct / (magnitudeA * magnitudeB);
+      
+      // Final safety check for NaN result
+      if (isNaN(similarity)) {
+        console.error("Similarity calculation resulted in NaN");
+        console.error(`Values: dotProduct=${dotProduct}, magnitudeA=${magnitudeA}, magnitudeB=${magnitudeB}`);
+        return 0;
+      }
+      
+      // Log diagnostic info for zero similarities
+      if (similarity === 0) {
+        console.log("Zero similarity calculated. Diagnostics:");
+        console.log(`Total dimensions: ${dimensions.size}`);
+        console.log(`Shared dimensions with non-zero values: ${sharedDimensions}`);
+        console.log(`Dot product: ${dotProduct}`);
+        console.log(`Magnitudes: A=${magnitudeA.toFixed(6)}, B=${magnitudeB.toFixed(6)}`);
+      }
+      
+      return similarity;
+    } catch (error) {
+      console.error('Error in cosine similarity calculation:', error);
+      return 0;
+    }
   }
 
   // Apply additional weights based on movie metadata
   applyMetadataWeights(similarity, movie, userPreferences) {
-    console.log(`Applying metadata weights for movie: ${movie.movie_name || 'Unknown'}`);
-    console.log(`Base similarity: ${similarity.toFixed(4)}`);
-    
     let weightedScore = similarity;
 
     // Weight by IMDb rating (assuming 10-point scale)
-    if (movie.imdbRating) {
-      const ratingBoost = 1 + (movie.imdbRating / 20);
+    if (movie.rating) {
+      const ratingBoost = 1 + (movie.rating / 20);
       weightedScore *= ratingBoost;
-      console.log(`Applied IMDb rating boost (${movie.imdbRating}): ${ratingBoost.toFixed(2)}x -> ${weightedScore.toFixed(4)}`);
     }
 
     // Weight by release recency (if available)
@@ -68,14 +136,12 @@ class Recommender {
       const age = currentYear - movie.releaseYear;
       const recencyBoost = 1 + (Math.max(0, 1 - (age / 10)) * 0.3);
       weightedScore *= recencyBoost;
-      console.log(`Applied recency boost (${movie.releaseYear}): ${recencyBoost.toFixed(2)}x -> ${weightedScore.toFixed(4)}`);
     }
 
-    // Weight by popularity trends (if available)
-    if (movie.popularityScore) {
-      const popularityBoost = 1 + (movie.popularityScore * 0.2);
+    // Weight by popularity (if available)
+    if (movie.popularity) {
+      const popularityBoost = 1 + (movie.popularity * 0.2);
       weightedScore *= popularityBoost;
-      console.log(`Applied popularity boost (${movie.popularityScore}): ${popularityBoost.toFixed(2)}x -> ${weightedScore.toFixed(4)}`);
     }
 
     // Duration preference adjustment
@@ -83,134 +149,150 @@ class Recommender {
       const durationDiff = Math.abs(userPreferences.preferredDuration - movie.duration);
       const durationFactor = 1 + (Math.max(0, 1 - (durationDiff / 60)) * 0.1);
       weightedScore *= durationFactor;
-      console.log(`Applied duration adjustment (user: ${userPreferences.preferredDuration}min, movie: ${movie.duration}min): ${durationFactor.toFixed(2)}x -> ${weightedScore.toFixed(4)}`);
     }
 
-    console.log(`Final weighted score: ${weightedScore.toFixed(4)}`);
+    // Genre matching (if user has preferred genres)
+    if (userPreferences.preferredGenres && userPreferences.preferredGenres.length > 0 && movie.genres) {
+      // Count how many preferred genres match
+      const matchingGenres = movie.genres.filter(genre => 
+        userPreferences.preferredGenres.includes(genre)
+      ).length;
+      
+      if (matchingGenres > 0) {
+        // Boost based on proportion of matching genres
+        const genreBoost = 1 + (matchingGenres / userPreferences.preferredGenres.length) * 0.3;
+        weightedScore *= genreBoost;
+      }
+    }
+
     return weightedScore;
   }
 
   // Get recommendations based on user input
-  async getRecommendations(userInputData, movieDatabase, options) {
+  async getRecommendations(userInputData, options = {}) {
     try {
       console.log("Starting recommendation process");
-      console.log(`Received movieDatabase with ${movieDatabase.length} movies`);
       
       const {
         maxResults = 5,
         similarityThreshold = 0.1,
-        includeMetadata = true
+        includeMetadata = true,
+        preferredGenres = []
       } = options;
-      
-      console.log(`Options: maxResults=${maxResults}, similarityThreshold=${similarityThreshold}, includeMetadata=${includeMetadata}`);
 
-      // Handle both raw user input and already processed input
+      // Process user input into vector
       let userVector;
       let userPreferences;
       
       // Check if the input is already processed (has vector property)
       if (userInputData.vector) {
-        console.log("User data already processed, using provided vector");
         userVector = userInputData.vector;
         userPreferences = userInputData.processedInput.preferences;
       } else {
-        console.log("Processing raw user input");
         // Process user input into vector if it's not already processed
         const processedData = await this.userProcessor.processUserInput(userInputData);
         userVector = processedData.vector;
         userPreferences = processedData.processedInput.preferences;
       }
-      console.log("Processed final user input", userVector)
-      console.log(`User vector created with ${Object.keys(userVector).length} dimensions`);
-      console.log("User preferences:", JSON.stringify(userPreferences, null, 2));
 
-      // Calculate similarities and apply weights
-      console.log("Calculating similarities for each movie...");
-      const recommendations = [];
+      // Initialize the database connection
+      await movieDatabaseService.initialize();
       
-      for (let i = 0; i < movieDatabase.length; i++) {
-        const movie = movieDatabase[i];
-        console.log(`\nProcessing movie ${i+1}/${movieDatabase.length}: ${movie.movie_name || movie.movie_id || 'Unknown'}`);
-        
-        // Check if movie has required properties
-        if (!movie.reviews) {
-          console.log(`Warning: Movie ${i+1} has no reviews property, skipping`);
-          continue;
-        }
-        
-        // Get or process movie vector
-        let movieVector;
-        try {
-          movieVector = movie.vector || this.vectorProcessor.processMovie(movie).vector;
-          console.log(`Movie vector created with ${Object.keys(movieVector).length} dimensions`);
-        } catch (error) {
-          console.error(`Error processing movie vector for movie ${i+1}:`, error.message);
-          continue;
-        }
-
-        // Calculate base similarity
-        let similarity;
-        try {
-          similarity = this.calculateCosineSimilarity(userVector, movieVector);
-        } catch (error) {
-          console.error(`Error calculating similarity for movie ${i+1}:`, error.message);
-          continue;
-        }
-
-        // Apply additional weights if needed
-        let finalScore;
-        try {
-          finalScore = includeMetadata ? 
-            this.applyMetadataWeights(similarity, movie, userPreferences) : 
-            similarity;
-        } catch (error) {
-          console.error(`Error applying metadata weights for movie ${i+1}:`, error.message);
-          finalScore = similarity;
-        }
-
-        recommendations.push({
-          movie: movie,
-          similarity: similarity,
-          finalScore: finalScore
-        });
+      // Get vectorized movies from the database
+      // If user has preferred genres, use those to filter initially
+      const hasGenrePreferences = preferredGenres && preferredGenres.length > 0;
+      const vectorizedMovies = hasGenrePreferences 
+        ? await movieDatabaseService.getVectorizedMoviesByGenres(preferredGenres, 200)
+        : await movieDatabaseService.getVectorizedMovies(200);
+      
+      console.log(`Retrieved ${vectorizedMovies.length} vectorized movies from database`);
+      
+      if (vectorizedMovies.length === 0) {
+        console.warn("No vectorized movies found in database");
+        return [];
       }
-
-      console.log(`\nCalculated similarities for ${recommendations.length} movies`);
-
-      // Filter and sort recommendations
-      const filteredRecommendations = recommendations
-        .filter(rec => {
-          const isValid = rec.similarity >= similarityThreshold;
-          if (!isValid) {
-            console.log(`Filtering out ${rec.movie.movie_name || 'Unknown'} with similarity ${rec.similarity.toFixed(4)} (below threshold ${similarityThreshold})`);
+      
+      // Calculate similarities and collect candidates
+      const candidateMovies = [];
+      
+      for (const movie of vectorizedMovies) {
+        try {
+          // Check if movie has vector data
+          if (!movie.vector) {
+            console.warn(`Movie ${movie.movieName} is marked as vectorized but has no vector data`);
+            continue;
           }
-          return isValid;
-        })
+          
+          // Make sure userVector is in a compatible format with movie.vector
+          // If one is a Map and the other is an object, we need to handle that
+          const movieVector = movie.vector;
+          
+          // Calculate similarity
+          const similarity = this.calculateCosineSimilarity(userVector, movieVector);
+          
+          // Print detailed information for debugging
+          console.log(`Similarity for ${movie.movieName}: ${similarity}`);
+          
+          // Skip if below threshold or invalid
+          if (isNaN(similarity) || similarity < similarityThreshold) continue;
+          
+          candidateMovies.push({
+            movie,
+            similarity
+          });
+        } catch (error) {
+          console.error(`Error calculating similarity for ${movie.movieName}:`, error.message);
+        }
+      }
+      
+      console.log(`Found ${candidateMovies.length} candidate movies above similarity threshold`);
+      
+      // Sort candidates by similarity
+      candidateMovies.sort((a, b) => b.similarity - a.similarity);
+      
+      // Apply additional weights and prepare final recommendations
+      const recommendations = candidateMovies.map(candidate => {
+        const { movie, similarity } = candidate;
+        
+        // Apply additional weights if needed
+        const finalScore = includeMetadata ? 
+          this.applyMetadataWeights(similarity, movie, userPreferences) : 
+          similarity;
+          
+        return {
+          movieId: movie.movieId,
+          movieName: movie.movieName,
+          similarity,
+          finalScore,
+          movie
+        };
+      });
+      
+      // Sort by final score and limit results
+      const sortedRecommendations = recommendations
         .sort((a, b) => b.finalScore - a.finalScore)
         .slice(0, maxResults);
 
-      console.log(`\nFiltered to ${filteredRecommendations.length} recommendations above similarity threshold`);
-
-      // Format results
-      const formattedResults = filteredRecommendations.map(rec => ({
-        movieId: rec.movie.movie_id,
-        movieName: rec.movie.movie_name,
-        similarity: rec.similarity.toFixed(4),
-        finalScore: rec.finalScore.toFixed(4),
+      // Format results to return only necessary data
+      const formattedResults = sortedRecommendations.map(rec => ({
+        movieId: rec.movieId,
+        movieName: rec.movieName,
+        similarity: parseFloat(rec.similarity.toFixed(4)),
+        finalScore: parseFloat(rec.finalScore.toFixed(4)),
         metadata: includeMetadata ? {
           imdbRating: rec.movie.imdbRating,
           releaseYear: rec.movie.releaseYear,
           duration: rec.movie.duration,
-          popularityScore: rec.movie.popularityScore
+          genres: rec.movie.genres,
+          synopsis: rec.movie.synopsis?.substring(0, 200) + (rec.movie.synopsis?.length > 200 ? '...' : ''),
+          posterUrl: rec.movie.posterUrl
         } : undefined
       }));
 
-      console.log("Recommendation process complete");
+      console.log(`Recommendation process complete. Found ${formattedResults.length} recommendations.`);
       return formattedResults;
-
     } catch (error) {
       console.error('Error getting recommendations:', error);
-      console.error(error.stack);
       throw error;
     }
   }

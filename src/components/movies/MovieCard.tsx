@@ -4,16 +4,17 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-interface Movie {
+export interface Movie {
   movieId: string;
   movieName: string;
   similarity: string;
   finalScore: string;
   metadata: {
-    imdbRating?: number;
+    popularity?: number;
     releaseYear?: number;
     duration?: number;
-    popularityScore?: number;
+    genres?: string[],
+    posterUrl: string
   };
 }
 
@@ -30,6 +31,7 @@ const MovieCard = ({ movie }: MovieCardProps) => {
     return `${hours}h ${mins}m`;
   };
 
+
   return (
     <Link href={`/movie/${movie.movieId}`}>
       <div
@@ -40,7 +42,7 @@ const MovieCard = ({ movie }: MovieCardProps) => {
         {/* Movie Poster */}
         <div className="relative aspect-[2/3]">
           <Image
-            src={`/posters/${movie.movieId}.jpg`}
+            src={movie.metadata.posterUrl}
             alt={movie.movieName}
             fill
             className="object-cover"
@@ -58,10 +60,10 @@ const MovieCard = ({ movie }: MovieCardProps) => {
           </h3>
           
           <div className="mt-2 flex items-center gap-4 text-sm text-gray-400">
-            {movie.metadata.imdbRating && (
+            {movie.metadata.popularity && (
               <div className="flex items-center">
                 <span className="text-yellow-400 mr-1">★</span>
-                {movie.metadata.imdbRating.toFixed(1)}
+                {movie.metadata.popularity.toFixed(1)}
               </div>
             )}
             
@@ -79,13 +81,13 @@ const MovieCard = ({ movie }: MovieCardProps) => {
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-400">Match Score</span>
               <span className="text-sm font-medium text-blue-400">
-                {(parseFloat(movie.similarity) * 1000).toFixed(0)}%
+                {(parseFloat(movie.similarity) * 100).toFixed(0)}%
               </span>
             </div>
             <div className="h-1 bg-gray-700 rounded-full mt-1">
               <div
                 className="h-full bg-blue-500 rounded-full"
-                style={{ width: `${parseFloat(movie.similarity) * 1000}%` }}
+                style={{ width: `${parseFloat(movie.similarity) * 100}%` }}
               />
             </div>
           </div>

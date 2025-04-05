@@ -3,7 +3,7 @@ import MovieHero from '@/components/movie/MovieHero';
 import MovieDetails from '@/components/movie/MovieDetails';
 import SimilarMovies from '@/components/movie/SimilarMovies';
 import { Skeleton } from '@/components/ui/Skeleton';
-import type { Movie } from '@/lib/movies';
+import movieDatabaseService from '@/lib/db/services/MovieDatabaseService';
 
 // Function to get TMDB poster URL
 async function getTMDBPoster(movieName: string, year?: number): Promise<string | null> {
@@ -96,15 +96,26 @@ function MovieDetailsSkeleton() {
 
 // Make the component async
 export default async function MoviePage({ params }: { params: { id: string } }) {
-  const dummyMovie = await getDummyMovie();
+  // Fetch the movie from the database using the ID
+  const movie = await movieDatabaseService.getMovie(params.id);
   
+  // If movie not found, use a dummy movie (or you could show a not found page)
+  if (!movie) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <h1 className="text-2xl font-bold">Movie not found</h1>
+        <p>The requested movie could not be found.</p>
+      </div>
+    );
+  }
+
   return (
     <main>
-      <MovieHero movie={dummyMovie} />
+      <MovieHero movie={movie} />
       <Suspense fallback={<MovieDetailsSkeleton />}>
-        <MovieDetails movie={dummyMovie} />
+        <MovieDetails movie={movie} />
       </Suspense>
-      {/* <SimilarMovies movieId={dummyMovie.movie_id} /> */}
+      <SimilarMovies movieId={movie.movieId} />
     </main>
   );
 }

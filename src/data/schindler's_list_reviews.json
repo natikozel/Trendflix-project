@@ -384,5 +384,14 @@
     {
       "text": "The devastating cultural experience Spielberg's masterpiece presented to us 25 years ago felt then like a piece of history. Today, from the bowels of 2018, it feels like a warning, a premonition, a harbinger."
     }
-  ]
+  ],
+  "release_year": 1993,
+  "duration": 195,
+  "genres": [
+    "History",
+    "Drama"
+  ],
+  "synopsis": "Businessman Oskar Schindler (Liam Neeson) arrives in Krakow in 1939, ready to make his fortune from World War II, which has just started. After joining the Nazi party primarily for political expediency, he staffs his factory with Jewish workers for similarly pragmatic reasons. When the SS begins exterminating Jews in the Krakow ghetto, Schindler arranges to have his workers protected to keep his factory in operation, but soon realizes that in so doing, he is also saving innocent lives.",
+  "popularity": 9.7,
+  "poster_url": "https://image.tmdb.org/t/p/original/sF1U4EUQS8YHUYjNl3pMGNIQyr0.jpg"
 }
