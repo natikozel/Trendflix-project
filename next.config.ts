@@ -7,16 +7,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  webpack: (config) => {
-    config.ignoreWarnings = [
-        { module: /node_modules/ },
-        { file: /node_modules/ },
-    ];
-    config.stats = {
-        warnings: false,
-        errors: false,
-      }
-    },
+
     silent: true,
 
   images: {
