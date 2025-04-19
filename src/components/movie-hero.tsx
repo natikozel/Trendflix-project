@@ -3,18 +3,16 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Clock, Calendar, Star, Share2, Play, Plus } from "lucide-react"
-import { Button } from "@/components/ui/Button"
-import { Badge } from "@/components/ui/Badge"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Check } from "@/components/check"
-import { localStorageData, movieProps, StoredMovie } from "./MovieDetails"
+import { Check } from "./icons/check"
 
 type MovieHeroProps = {
-  movie: movieProps // In a real app, you'd use a proper type here
-  localStorageData: localStorageData
+  movie: any // In a real app, you'd use a proper type here
 }
 
-export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
+export default function MovieHero({ movie }: MovieHeroProps) {
   const [isInWatchlist, setIsInWatchlist] = useState(false)
 
   const toggleWatchlist = () => {
@@ -68,13 +66,13 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
             whileHover={{ scale: 1.05 }}
             transition={{ type: "spring", stiffness: 300, damping: 10 }}
           >
-            <img src={movie.posterUrl || "/placeholder.svg"} alt={movie.movieName} className="w-full h-full object-cover" />
+            <img src={movie.posterUrl || "/placeholder.svg"} alt={movie.title} className="w-full h-full object-cover" />
           </motion.div>
 
           {/* Movie Info */}
           <div className="flex-1">
             <motion.div className="flex flex-wrap items-center gap-2 mb-2" variants={itemVariants}>
-              {movie.genres.map((genre: string, index: number) => (
+              {movie.genres.map((genre, index) => (
                 <motion.div key={genre} variants={itemVariants} custom={index}>
                   <Badge variant="outline" className="bg-purple-900/50 text-purple-100 border-purple-700">
                     {genre}
@@ -84,13 +82,13 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
             </motion.div>
 
             <motion.h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2" variants={itemVariants}>
-              {movie.movieName}
+              {movie.title}
             </motion.h1>
 
             <motion.div className="flex flex-wrap items-center gap-4 text-gray-300 mb-4" variants={itemVariants}>
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                <span>{movie.releaseYear}</span>
+                <span>{movie.year}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
@@ -98,7 +96,7 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
               </div>
               <div className="flex items-center gap-1">
                 <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                <span>{movie.popularity}</span>
+                <span>{movie.rating}</span>
               </div>
             </motion.div>
 
@@ -106,19 +104,19 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
             <motion.div className="mb-4" variants={itemVariants}>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-sm text-gray-400">Match Score</span>
-                <span className="font-bold text-green-400">{localStorageData.matchScore}%</span>
+                <span className="font-bold text-green-400">{movie.matchScore}%</span>
               </div>
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: "100%" }}
                 transition={{ delay: 0.5, duration: 0.8, ease: "easeOut" }}
               >
-                <Progress value={localStorageData.matchScore} className="h-1.5 w-48" />
+                <Progress value={movie.matchScore} className="h-1.5 w-48" />
               </motion.div>
             </motion.div>
 
             <motion.p className="text-gray-300 mb-6 max-w-2xl line-clamp-3 sm:line-clamp-none" variants={itemVariants}>
-              {movie.synopsis}
+              {movie.plot}
             </motion.p>
 
             {/* Action Buttons */}
@@ -136,18 +134,18 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
                 >
                   {isInWatchlist ? (
                     <>
-                      <Check className="text-black mr-2 h-4 w-4" /> <span className="">In Watchlist</span>
+                      <Check className="mr-2 h-4 w-4" /> In Watchlist
                     </>
                   ) : (
                     <>
-                      <Plus className="text-black mr-2 h-4 w-4" /> <span className="text-black">Add to Watchlist</span>
+                      <Plus className="mr-2 h-4 w-4" /> Add to Watchlist
                     </>
                   )}
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button variant="outline">
-                  <Share2 className="text-black mr-2 h-4 w-4" /> <span className="text-black">Share</span>
+                  <Share2 className="mr-2 h-4 w-4" /> Share
                 </Button>
               </motion.div>
             </motion.div>

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-
+import defaultPoster from '@/assets/default_poster.jpg';
 export interface Movie {
   movieId: string;
   movieName: string;
@@ -31,6 +31,26 @@ const MovieCard = ({ movie }: MovieCardProps) => {
     return `${hours}h ${mins}m`;
   };
 
+  const calculateMatchPercentage = (score: string): number => {
+    const scoreValue = parseFloat(score);
+    
+    // Convert to a more representative percentage that preserves relative differences
+    // For scores typically in the 0.01-0.20 range, this will create a wider visual spread
+    
+    // First, determine if this is a high or low score based on typical cosine similarity ranges
+    if (scoreValue > 0.10) {
+      // High score (like Titanic at 0.1514)
+      return Math.round(85 + (scoreValue * 100 - 10));
+    } else if (scoreValue > 0.05) {
+      // Medium score (like Schindler's List at 0.0699)
+      return Math.round(60 + (scoreValue * 200));
+    } else {
+      // Low score
+      return Math.round(50 + (scoreValue * 300));
+    }
+  };
+
+
 
   return (
     <Link href={`/movie/${movie.movieId}`}>
@@ -42,13 +62,12 @@ const MovieCard = ({ movie }: MovieCardProps) => {
         {/* Movie Poster */}
         <div className="relative aspect-[2/3]">
           <Image
-            src={movie.metadata.posterUrl}
+            src={movie.metadata.posterUrl ? movie.metadata.posterUrl : defaultPoster}
             alt={movie.movieName}
             fill
             className="object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
-          
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         </div>
@@ -81,13 +100,15 @@ const MovieCard = ({ movie }: MovieCardProps) => {
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-400">Match Score</span>
               <span className="text-sm font-medium text-blue-400">
-                {(parseFloat(movie.similarity) * 100).toFixed(0)}%
+                {calculateMatchPercentage(movie.finalScore)}%
               </span>
             </div>
             <div className="h-1 bg-gray-700 rounded-full mt-1">
               <div
-                className="h-full bg-blue-500 rounded-full"
-                style={{ width: `${parseFloat(movie.similarity) * 100}%` }}
+                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                style={{ 
+                  width: `${calculateMatchPercentage(movie.finalScore)}%` 
+                }}
               />
             </div>
           </div>

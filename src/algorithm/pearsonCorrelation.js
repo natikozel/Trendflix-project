@@ -1,26 +1,36 @@
+/**
+ * Pearson Correlation Recommender
+ * 
+ * This recommender uses Pearson correlation to compare user preferences with movies.
+ * Pearson correlation measures linear correlation between two sets of data,
+ * giving values between -1 (perfectly negatively correlated) to 1 (perfectly correlated).
+ * 
+ * Unlike cosine similarity, Pearson correlation considers the "centered" vectors,
+ * making it more robust to differences in scale and offset, focusing on the pattern
+ * of dimensions rather than their absolute values.
+ */
+
 import VectorProcessor from './movieReviewsToVector.js';
 import UserInputProcessor from './userInputToVector.js';
 import movieDatabaseService from '../lib/db/services/MovieDatabaseService.js';
 
-class Recommender {
+class PearsonCorrelationRecommender {
   constructor() {
     this.vectorProcessor = new VectorProcessor();
     this.userProcessor = new UserInputProcessor();
   }
 
-  // Calculate cosine similarity between two vectors
-  calculateCosineSimilarity(vectorA, vectorB) {
-    // Safety check for inputs
+  // Calculate Pearson correlation similarity between two vectors
+  calculatePearsonSimilarity(vectorA, vectorB) {
     if (!vectorA || !vectorB) {
       return 0;
     }
 
     try {
-      // Determine what type of vectors we're dealing with
+      // Same vector type determination and preparation...
       const isMapA = vectorA instanceof Map;
       const isMapB = vectorB instanceof Map;
       
-      // Helper to safely get a value from either Map or object
       const getValue = (vector, isMap, key) => {
         if (isMap) {
           return vector.has(key) ? vector.get(key) : 0;
@@ -29,90 +39,115 @@ class Recommender {
         }
       };
       
-      // Get all unique dimensions
+      // Get all dimensions and track shared ones
       const dimensions = new Set();
+      const sharedDimensions = [];
       
-      // Add keys from vectorA
       if (isMapA) {
         for (const key of vectorA.keys()) {
           dimensions.add(key);
+          if ((isMapB && vectorB.has(key) && vectorB.get(key) > 0) || 
+              (!isMapB && vectorB[key] && vectorB[key] > 0)) {
+            sharedDimensions.push(key);
+          }
         }
       } else {
-        Object.keys(vectorA).forEach(key => dimensions.add(key));
-      }
-      
-      // Add keys from vectorB
-      if (isMapB) {
-        for (const key of vectorB.keys()) {
+        Object.keys(vectorA).forEach(key => {
           dimensions.add(key);
-        }
-      } else {
-        Object.keys(vectorB).forEach(key => dimensions.add(key));
+          if ((isMapB && vectorB.has(key) && vectorB.get(key) > 0) || 
+              (!isMapB && vectorB[key] && vectorB[key] > 0)) {
+            sharedDimensions.push(key);
+          }
+        });
       }
       
-      if (dimensions.size === 0) {
-        return 0;
+      // If very few shared dimensions, we'll use a hybrid approach
+      if (sharedDimensions.length < 5) {
+        // Fall back to a cosine-like approach for sparse vectors
+        let dotProduct = 0;
+        let magnitudeA = 0;
+        let magnitudeB = 0;
+        
+        dimensions.forEach(dim => {
+          const a = getValue(vectorA, isMapA, dim);
+          const b = getValue(vectorB, isMapB, dim);
+          
+          dotProduct += a * b;
+          magnitudeA += a * a;
+          magnitudeB += b * b;
+        });
+        
+        magnitudeA = Math.sqrt(magnitudeA || 1e-10);
+        magnitudeB = Math.sqrt(magnitudeB || 1e-10);
+        
+        const cosineSimilarity = dotProduct / (magnitudeA * magnitudeB);
+        return Math.max(0, cosineSimilarity) * (1 + sharedDimensions.length * 0.05);
       }
-
-      // Calculate dot product
-      let dotProduct = 0;
-      let magnitudeA = 0;
-      let magnitudeB = 0;
-      let sharedDimensions = 0;
-
-      dimensions.forEach(dim => {
+      
+      // Continue with Pearson for cases with enough shared dimensions
+      let sumA = 0, sumB = 0;
+      
+      sharedDimensions.forEach(dim => {
+        sumA += getValue(vectorA, isMapA, dim);
+        sumB += getValue(vectorB, isMapB, dim);
+      });
+      
+      const meanA = sumA / sharedDimensions.length;
+      const meanB = sumB / sharedDimensions.length;
+      
+      // Calculate Pearson components
+      let numerator = 0;
+      let denominatorA = 0;
+      let denominatorB = 0;
+      
+      sharedDimensions.forEach(dim => {
         const a = getValue(vectorA, isMapA, dim);
         const b = getValue(vectorB, isMapB, dim);
         
-        // Check for valid numbers
-        if (isNaN(a) || isNaN(b)) {
-          return; // Skip this dimension
-        }
+        const diffA = a - meanA;
+        const diffB = b - meanB;
         
-        // Track shared dimensions with non-zero values
-        if (a !== 0 && b !== 0) {
-          sharedDimensions++;
-        }
-        
-        dotProduct += a * b;
-        magnitudeA += a * a;
-        magnitudeB += b * b;
+        numerator += diffA * diffB;
+        denominatorA += diffA * diffA;
+        denominatorB += diffB * diffB;
       });
-
-      // Calculate magnitudes, with safety checks
-      magnitudeA = Math.sqrt(Math.max(0, magnitudeA));
-      magnitudeB = Math.sqrt(Math.max(0, magnitudeB));
       
-      // Return cosine similarity with safety checks
-      if (magnitudeA === 0 || magnitudeB === 0) {
-        return 0; // Avoid division by zero
+      // Safety checks
+      if (denominatorA <= 0 || denominatorB <= 0) {
+        // Fall back to dimensionality boost
+        return Math.min(0.3, sharedDimensions.length * 0.03);
       }
       
-      const similarity = dotProduct / (magnitudeA * magnitudeB);
+      // Calculate correlation
+      const correlation = numerator / (Math.sqrt(denominatorA) * Math.sqrt(denominatorB));
       
-      // Final safety check for NaN result
-      if (isNaN(similarity)) {
-        return 0;
-      }
+      // Apply nonlinear scaling to boost higher correlations
+      const boostedCorrelation = correlation < 0 ? 0 : Math.pow(correlation, 0.8);
       
-      return similarity;
+      // Include a boost for having many shared dimensions
+      const dimensionalityBoost = Math.min(0.3, Math.sqrt(sharedDimensions.length) * 0.05);
+      
+      // Combine correlation with dimensionality boost
+      const scaledSimilarity = ((boostedCorrelation + 1) / 2) + dimensionalityBoost;
+      
+      return Math.min(1, Math.max(0, scaledSimilarity));
     } catch (error) {
+      console.error('Error calculating Pearson similarity:', error);
       return 0;
     }
   }
 
-  // Apply additional weights based on movie metadata
+  // Apply additional weights based on movie metadata - same as in original recommender
   applyMetadataWeights(similarity, movie, userPreferences) {
     let weightedScore = similarity;
-
-    console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n",userPreferences)
-    // if (movie.rating) {
-    //   const ratingBoost = 1 + (movie.rating / 20);
-    //   weightedScore *= ratingBoost;
-    // }
+    
+    if (movie.rating) {
+      const ratingBoost = 1 + (movie.rating / 20);
+      weightedScore *= ratingBoost;
+    }
 
     // Weight by release recency (if available)
-    if (movie?.releaseYear && userPreferences?.preferNewReleases) {
+    if (movie.releaseYear && userPreferences.preferNewReleases) {
       const currentYear = new Date().getFullYear();
       const age = currentYear - movie.releaseYear;
       const recencyBoost = 1 + (Math.max(0, 1 - (age / 10)) * 0.3);
@@ -120,20 +155,20 @@ class Recommender {
     }
 
     // Weight by popularity (if available)
-    if (movie?.popularity) {
+    if (movie.popularity) {
       const popularityBoost = 1 + (movie.popularity * 0.2);
       weightedScore *= popularityBoost;
     }
 
     // Duration preference adjustment
-    if (userPreferences?.preferredDuration && movie?.duration) {
+    if (userPreferences.preferredDuration && movie.duration) {
       const durationDiff = Math.abs(userPreferences.preferredDuration - movie.duration);
       const durationFactor = 1 + (Math.max(0, 1 - (durationDiff / 60)) * 0.1);
       weightedScore *= durationFactor;
     }
 
     // Genre matching (if user has preferred genres)
-    if (userPreferences?.preferredGenres && userPreferences?.preferredGenres?.length > 0 && movie?.genres) {
+    if (userPreferences.preferredGenres && userPreferences.preferredGenres.length > 0 && movie.genres) {
       // Count how many preferred genres match
       const matchingGenres = movie.genres.filter(genre => 
         userPreferences.preferredGenres.includes(genre)
@@ -146,71 +181,17 @@ class Recommender {
       }
     }
 
-    if (userPreferences?.yearRange?.minYear && userPreferences?.yearRange?.maxYear && movie?.releaseYear) {
-      // First check if the movie is within the range
-      const isInRange = movie.releaseYear >= userPreferences.yearRange.minYear && 
-                        movie.releaseYear <= userPreferences.yearRange.maxYear;
-      
-      if (isInRange) {
-        // Calculate how well the movie's year fits in the range (closer to middle = better)
-        const rangeSize = userPreferences.yearRange.maxYear - userPreferences.yearRange.minYear;
-        const midPoint = (userPreferences.yearRange.minYear + userPreferences.yearRange.maxYear) / 2;
-        const distanceFromMidpoint = Math.abs(movie.releaseYear - midPoint);
-        
-        // Normalize distance from midpoint (0 = at midpoint, 1 = at edge of range)
-        const normalizedDistance = distanceFromMidpoint / (rangeSize / 2);
-        
-        // Calculate boost (max boost at midpoint, decreasing toward edges)
-        const yearBoost = 1 + (1 - normalizedDistance) * 0.7;
-        
-        console.log(`Year range boost for ${movie.movieName} (${movie.releaseYear}): ${yearBoost.toFixed(2)}`);
-        weightedScore *= yearBoost;
-      } else {
-        // Movie is outside the range - apply a penalty based on how far outside
-        const distanceOutsideRange = Math.min(
-          Math.abs(movie.releaseYear - userPreferences.yearRange.minYear),
-          Math.abs(movie.releaseYear - userPreferences.yearRange.maxYear)
-        );
-        
-        // Stronger penalty for movies further outside the range
-        const penaltyFactor = Math.max(0.5, 1 - (distanceOutsideRange / 10) * 0.5);
-        
-        console.log(`Year range penalty for ${movie.movieName} (${movie.releaseYear}): ${penaltyFactor.toFixed(2)}`);
-        weightedScore *= penaltyFactor;
-      }
-    }
-    // if (userPreferences?.age && movie?.ageRating) {
-    //   const ageRatingOrder = ['G', 'PG', 'PG-13', 'R', 'NC-17'];
-    //   const movieAgeRatingIndex = ageRatingOrder.indexOf(movie.ageRating);
-    //   const userAge = parseInt(userPreferences.age);
-      
-    //   // Map user age to appropriate rating
-    //   let maxAllowedRatingIndex;
-    //   if (userAge < 13) {
-    //     maxAllowedRatingIndex = 1; // Up to PG
-    //   } else if (userAge < 17) {
-    //     maxAllowedRatingIndex = 2; // Up to PG-13
-    //   } else {
-    //     maxAllowedRatingIndex = 4; // All ratings allowed
-    //   }
-      
-    //   // If movie rating is higher than allowed for user's age, set score to 0
-    //   if (movieAgeRatingIndex > maxAllowedRatingIndex) {
-    //     weightedScore = 0;
-    //   }
-    // }
-
     return weightedScore;
   }
 
-  // Get recommendations based on user input
+  // Get recommendations based on user input - similar to original but using Pearson correlation
   async getRecommendations(userInputData, options = {}) {
     try {
-      console.log("Starting recommendation process");
+      console.log("Starting Pearson-based recommendation process");
       
       const {
         maxResults = 9,
-        similarityThreshold = 0.03,
+        similarityThreshold = 0.04, // Pearson may require a different threshold
         includeMetadata = true,
         preferredGenres = []
       } = options;
@@ -218,6 +199,7 @@ class Recommender {
       // Process user input into vector
       let userVector;
       let userPreferences;
+      
       // Check if the input is already processed (has vector property)
       if (userInputData.vector) {
         userVector = userInputData.vector;
@@ -228,19 +210,6 @@ class Recommender {
         userVector = processedData.vector;
         userPreferences = processedData.processedInput.preferences;
       }
-
-      if (userInputData?.genres) {
-        userPreferences.preferredGenres = userInputData.genres;
-      }
-      if (userInputData?.age) {
-        userPreferences.age = userInputData.age;
-      }
-      if (userInputData?.gender) {
-        userPreferences.gender = userInputData.gender;
-      }
-      // if (userInputData?.releaseYear) {
-      //   userPreferences.preferNewReleases = userInputData.releaseYear;
-      // }
 
       // Initialize the database connection
       await movieDatabaseService.initialize();
@@ -269,11 +238,11 @@ class Recommender {
             continue;
           }
           
-          // Calculate similarity
-          const similarity = this.calculateCosineSimilarity(userVector, movie.vector);
+          // Calculate similarity using Pearson correlation
+          const similarity = this.calculatePearsonSimilarity(userVector, movie.vector);
           
-          // Only log the movie name and similarity - keep this log
-          console.log(`Similarity for "${movie.movieName}": ${similarity.toFixed(4)}`);
+          // Log the movie name and similarity
+          console.log(`Pearson Similarity for "${movie.movieName}": ${similarity.toFixed(4)}`);
           
           // Skip if below threshold
           if (similarity < similarityThreshold) continue;
@@ -283,6 +252,7 @@ class Recommender {
             similarity
           });
         } catch (error) {
+          console.error(`Error processing movie ${movie.movieName}:`, error);
         }
       }
       
@@ -312,8 +282,8 @@ class Recommender {
         .sort((a, b) => b.finalScore - a.finalScore)
         .slice(0, maxResults);
 
-      // Log the top recommendations - keep this log
-      console.log("\nTop recommendations:");
+      // Log the top recommendations
+      console.log("\nTop recommendations using Pearson correlation:");
       sortedRecommendations.forEach((rec, index) => {
         console.log(`${index + 1}. "${rec.movieName}" - Similarity: ${rec.similarity.toFixed(4)}, Final Score: ${rec.finalScore.toFixed(4)}`);
       });
@@ -334,13 +304,13 @@ class Recommender {
         } : undefined
       }));
 
-      console.log("Recommendation process complete.");
+      console.log("Pearson-based recommendation process complete.");
       return formattedResults;
     } catch (error) {
-      console.error('Error getting recommendations:', error);
+      console.error('Error getting recommendations with Pearson correlation:', error);
       throw error;
     }
   }
 }
 
-export default Recommender; 
+export default PearsonCorrelationRecommender;

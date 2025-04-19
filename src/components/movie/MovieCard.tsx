@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import MovieScore from '@/components/ui/MovieScore';
 
 interface MovieCardProps {
   movie: {
@@ -12,6 +13,8 @@ interface MovieCardProps {
     rating?: number;
     releaseYear?: number;
     genres?: string[];
+    similarity?: string;
+    finalScore?: string;
   };
 }
 
@@ -58,6 +61,13 @@ const MovieCard = ({ movie }: MovieCardProps) => {
               )}
             </div>
           </div>
+          
+          {(movie.similarity || movie.finalScore) && (
+            <MovieScore 
+              similarity={movie.similarity}
+              finalScore={movie.finalScore}
+            />
+          )}
           
           {movie.genres && movie.genres.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">

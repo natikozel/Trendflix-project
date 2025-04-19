@@ -6,12 +6,14 @@ import { setLoading, setRecommendations } from '@/store/recommendationsSlice';
 import TextInput from './TextInput';
 import DurationSlider from './DurationSlider';
 import GenreSelector from './GenreSelector';
+import YearRangeSlider from './YearRangeSlider';
 import { RootState } from '@/store/store';
 import { motion } from 'framer-motion';
 
 const PreferenceForm = () => {
   const dispatch = useDispatch();
   const isLoading = useSelector((state: RootState) => state?.recommendations.isLoading);
+  const currentYear = new Date().getFullYear();
   const [formData, setFormData] = useState({
     freeText: '',
     age: 25,
@@ -19,6 +21,10 @@ const PreferenceForm = () => {
     preferredDuration: 120,
     preferredLanguage: 'English',
     preferNewReleases: false,
+    yearRange: {
+      minYear: 1895,
+      maxYear: currentYear
+    },
     genres: []
   });
 
@@ -40,7 +46,12 @@ const PreferenceForm = () => {
       }
 
       const data = await response.json();
+      
+      // Save recommendations to Redux store
       dispatch(setRecommendations(data));
+      
+      // Save recommendations to local storage
+      localStorage.setItem('movieRecommendations', JSON.stringify(data));
     } catch (error) {
       console.error('Error getting recommendations:', error);
       // TODO: Add error handling UI
@@ -124,6 +135,20 @@ const PreferenceForm = () => {
         <DurationSlider
           value={formData.preferredDuration}
           onChange={(value) => setFormData(prev => ({ ...prev, preferredDuration: value }))}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-200">
+          Release Year Range
+        </label>
+        <YearRangeSlider
+          minYear={formData.yearRange.minYear}
+          maxYear={formData.yearRange.maxYear}
+          onChange={(minYear, maxYear) => setFormData(prev => ({ 
+            ...prev, 
+            yearRange: { minYear, maxYear } 
+          }))}
         />
       </div>
 

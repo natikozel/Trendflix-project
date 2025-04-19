@@ -81,8 +81,7 @@ const DurationSlider = ({ value, onChange }: DurationSliderProps) => {
         </motion.div>
       </div>
       <div className="flex justify-between text-xs text-gray-400">
-        <span>1h</span>
-        <span>4h</span>
+        
       </div>
     </motion.div>
   );

@@ -1,16 +1,29 @@
+/**
+ * Euclidean Distance Recommender
+ * 
+ * This recommender uses Euclidean distance to compare user preferences with movies.
+ * It calculates the "straight-line" distance between two vectors in an n-dimensional space.
+ * 
+ * Unlike cosine similarity, Euclidean distance considers the magnitude of the vectors,
+ * making it potentially more suited for recommendation problems where 
+ * the absolute values of features are important, not just their directions.
+ * 
+ * Since Euclidean distance gives a dissimilarity score (lower is better),
+ * we convert it to a similarity score for consistency with the existing system.
+ */
+
 import VectorProcessor from './movieReviewsToVector.js';
 import UserInputProcessor from './userInputToVector.js';
 import movieDatabaseService from '../lib/db/services/MovieDatabaseService.js';
 
-class Recommender {
+class EuclideanDistanceRecommender {
   constructor() {
     this.vectorProcessor = new VectorProcessor();
     this.userProcessor = new UserInputProcessor();
   }
 
-  // Calculate cosine similarity between two vectors
-  calculateCosineSimilarity(vectorA, vectorB) {
-    // Safety check for inputs
+  // Calculate Euclidean distance similarity between two vectors
+  calculateEuclideanSimilarity(vectorA, vectorB) {
     if (!vectorA || !vectorB) {
       return 0;
     }
@@ -29,90 +42,101 @@ class Recommender {
         }
       };
       
-      // Get all unique dimensions
+      // Get shared dimensions with non-zero values in both vectors
       const dimensions = new Set();
+      const sharedDimensions = new Set();
       
-      // Add keys from vectorA
+      // Add keys from both vectors and track shared dimensions
       if (isMapA) {
         for (const key of vectorA.keys()) {
           dimensions.add(key);
+          if (isMapB ? vectorB.has(key) && vectorB.get(key) > 0 : vectorB[key] > 0) {
+            sharedDimensions.add(key);
+          }
         }
       } else {
-        Object.keys(vectorA).forEach(key => dimensions.add(key));
+        Object.keys(vectorA).forEach(key => {
+          dimensions.add(key);
+          if (isMapB ? vectorB.has(key) && vectorB.get(key) > 0 : vectorB[key] > 0) {
+            sharedDimensions.add(key);
+          }
+        });
       }
       
-      // Add keys from vectorB
       if (isMapB) {
         for (const key of vectorB.keys()) {
           dimensions.add(key);
         }
       } else {
-        Object.keys(vectorB).forEach(key => dimensions.add(key));
+        Object.keys(vectorB).forEach(key => {
+          dimensions.add(key);
+        });
       }
       
       if (dimensions.size === 0) {
         return 0;
       }
 
-      // Calculate dot product
-      let dotProduct = 0;
-      let magnitudeA = 0;
-      let magnitudeB = 0;
-      let sharedDimensions = 0;
+      // Boost factor for having more shared dimensions
+      const sharedTermBoost = Math.sqrt(sharedDimensions.size) * 0.1 + 1;
+      
+      // Calculate squared difference
+      let sumSquaredDiff = 0;
+      let sumSharedTerms = 0;
 
       dimensions.forEach(dim => {
-        const a = getValue(vectorA, isMapA, dim);
-        const b = getValue(vectorB, isMapB, dim);
+        const valueA = getValue(vectorA, isMapA, dim);
+        const valueB = getValue(vectorB, isMapB, dim);
         
-        // Check for valid numbers
-        if (isNaN(a) || isNaN(b)) {
-          return; // Skip this dimension
+        if (isNaN(valueA) || isNaN(valueB)) {
+          return;
         }
         
-        // Track shared dimensions with non-zero values
-        if (a !== 0 && b !== 0) {
-          sharedDimensions++;
-        }
+        // Apply heavier weight to shared dimensions
+        const weight = sharedDimensions.has(dim) ? 2.0 : 0.5; 
+        const diff = (valueA - valueB) * weight;
+        sumSquaredDiff += diff * diff;
         
-        dotProduct += a * b;
-        magnitudeA += a * a;
-        magnitudeB += b * b;
+        // Sum product of shared terms (similar to cosine numerator)
+        if (valueA > 0 && valueB > 0) {
+          sumSharedTerms += valueA * valueB;
+        }
       });
 
-      // Calculate magnitudes, with safety checks
-      magnitudeA = Math.sqrt(Math.max(0, magnitudeA));
-      magnitudeB = Math.sqrt(Math.max(0, magnitudeB));
+      // Calculate Euclidean distance with the weighted differences
+      const distance = Math.sqrt(sumSquaredDiff);
       
-      // Return cosine similarity with safety checks
-      if (magnitudeA === 0 || magnitudeB === 0) {
-        return 0; // Avoid division by zero
-      }
+      // Hybrid approach: combine distance-based and shared-terms metrics
+      const distanceSimilarity = 1 / (1 + distance);
+      const sharedTermsFactor = Math.min(1, sumSharedTerms / 10); // Scale shared terms factor
       
-      const similarity = dotProduct / (magnitudeA * magnitudeB);
+      // Combined similarity that considers both distance and shared terms
+      let similarity = (distanceSimilarity * 0.5) + (sharedTermsFactor * 0.5);
       
-      // Final safety check for NaN result
-      if (isNaN(similarity)) {
-        return 0;
-      }
+      // Apply boost for having many shared terms
+      similarity *= sharedTermBoost;
+      
+      // Ensure result is between 0 and 1
+      similarity = Math.min(1, Math.max(0, similarity));
       
       return similarity;
     } catch (error) {
+      console.error('Error calculating Euclidean similarity:', error);
       return 0;
     }
   }
 
-  // Apply additional weights based on movie metadata
+  // Apply additional weights based on movie metadata - same as in original recommender
   applyMetadataWeights(similarity, movie, userPreferences) {
     let weightedScore = similarity;
-
-    console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n",userPreferences)
-    // if (movie.rating) {
-    //   const ratingBoost = 1 + (movie.rating / 20);
-    //   weightedScore *= ratingBoost;
-    // }
+    
+    if (movie.rating) {
+      const ratingBoost = 1 + (movie.rating / 20);
+      weightedScore *= ratingBoost;
+    }
 
     // Weight by release recency (if available)
-    if (movie?.releaseYear && userPreferences?.preferNewReleases) {
+    if (movie.releaseYear && userPreferences.preferNewReleases) {
       const currentYear = new Date().getFullYear();
       const age = currentYear - movie.releaseYear;
       const recencyBoost = 1 + (Math.max(0, 1 - (age / 10)) * 0.3);
@@ -120,20 +144,20 @@ class Recommender {
     }
 
     // Weight by popularity (if available)
-    if (movie?.popularity) {
+    if (movie.popularity) {
       const popularityBoost = 1 + (movie.popularity * 0.2);
       weightedScore *= popularityBoost;
     }
 
     // Duration preference adjustment
-    if (userPreferences?.preferredDuration && movie?.duration) {
+    if (userPreferences.preferredDuration && movie.duration) {
       const durationDiff = Math.abs(userPreferences.preferredDuration - movie.duration);
       const durationFactor = 1 + (Math.max(0, 1 - (durationDiff / 60)) * 0.1);
       weightedScore *= durationFactor;
     }
 
     // Genre matching (if user has preferred genres)
-    if (userPreferences?.preferredGenres && userPreferences?.preferredGenres?.length > 0 && movie?.genres) {
+    if (userPreferences.preferredGenres && userPreferences.preferredGenres.length > 0 && movie.genres) {
       // Count how many preferred genres match
       const matchingGenres = movie.genres.filter(genre => 
         userPreferences.preferredGenres.includes(genre)
@@ -146,71 +170,17 @@ class Recommender {
       }
     }
 
-    if (userPreferences?.yearRange?.minYear && userPreferences?.yearRange?.maxYear && movie?.releaseYear) {
-      // First check if the movie is within the range
-      const isInRange = movie.releaseYear >= userPreferences.yearRange.minYear && 
-                        movie.releaseYear <= userPreferences.yearRange.maxYear;
-      
-      if (isInRange) {
-        // Calculate how well the movie's year fits in the range (closer to middle = better)
-        const rangeSize = userPreferences.yearRange.maxYear - userPreferences.yearRange.minYear;
-        const midPoint = (userPreferences.yearRange.minYear + userPreferences.yearRange.maxYear) / 2;
-        const distanceFromMidpoint = Math.abs(movie.releaseYear - midPoint);
-        
-        // Normalize distance from midpoint (0 = at midpoint, 1 = at edge of range)
-        const normalizedDistance = distanceFromMidpoint / (rangeSize / 2);
-        
-        // Calculate boost (max boost at midpoint, decreasing toward edges)
-        const yearBoost = 1 + (1 - normalizedDistance) * 0.7;
-        
-        console.log(`Year range boost for ${movie.movieName} (${movie.releaseYear}): ${yearBoost.toFixed(2)}`);
-        weightedScore *= yearBoost;
-      } else {
-        // Movie is outside the range - apply a penalty based on how far outside
-        const distanceOutsideRange = Math.min(
-          Math.abs(movie.releaseYear - userPreferences.yearRange.minYear),
-          Math.abs(movie.releaseYear - userPreferences.yearRange.maxYear)
-        );
-        
-        // Stronger penalty for movies further outside the range
-        const penaltyFactor = Math.max(0.5, 1 - (distanceOutsideRange / 10) * 0.5);
-        
-        console.log(`Year range penalty for ${movie.movieName} (${movie.releaseYear}): ${penaltyFactor.toFixed(2)}`);
-        weightedScore *= penaltyFactor;
-      }
-    }
-    // if (userPreferences?.age && movie?.ageRating) {
-    //   const ageRatingOrder = ['G', 'PG', 'PG-13', 'R', 'NC-17'];
-    //   const movieAgeRatingIndex = ageRatingOrder.indexOf(movie.ageRating);
-    //   const userAge = parseInt(userPreferences.age);
-      
-    //   // Map user age to appropriate rating
-    //   let maxAllowedRatingIndex;
-    //   if (userAge < 13) {
-    //     maxAllowedRatingIndex = 1; // Up to PG
-    //   } else if (userAge < 17) {
-    //     maxAllowedRatingIndex = 2; // Up to PG-13
-    //   } else {
-    //     maxAllowedRatingIndex = 4; // All ratings allowed
-    //   }
-      
-    //   // If movie rating is higher than allowed for user's age, set score to 0
-    //   if (movieAgeRatingIndex > maxAllowedRatingIndex) {
-    //     weightedScore = 0;
-    //   }
-    // }
-
     return weightedScore;
   }
 
-  // Get recommendations based on user input
+  // Get recommendations based on user input - similar to original but using Euclidean similarity
   async getRecommendations(userInputData, options = {}) {
     try {
-      console.log("Starting recommendation process");
+      console.log("Starting Euclidean-based recommendation process");
       
       const {
         maxResults = 9,
-        similarityThreshold = 0.03,
+        similarityThreshold = 0.05, // Euclidean may require a different threshold
         includeMetadata = true,
         preferredGenres = []
       } = options;
@@ -218,6 +188,7 @@ class Recommender {
       // Process user input into vector
       let userVector;
       let userPreferences;
+      
       // Check if the input is already processed (has vector property)
       if (userInputData.vector) {
         userVector = userInputData.vector;
@@ -228,19 +199,6 @@ class Recommender {
         userVector = processedData.vector;
         userPreferences = processedData.processedInput.preferences;
       }
-
-      if (userInputData?.genres) {
-        userPreferences.preferredGenres = userInputData.genres;
-      }
-      if (userInputData?.age) {
-        userPreferences.age = userInputData.age;
-      }
-      if (userInputData?.gender) {
-        userPreferences.gender = userInputData.gender;
-      }
-      // if (userInputData?.releaseYear) {
-      //   userPreferences.preferNewReleases = userInputData.releaseYear;
-      // }
 
       // Initialize the database connection
       await movieDatabaseService.initialize();
@@ -269,11 +227,11 @@ class Recommender {
             continue;
           }
           
-          // Calculate similarity
-          const similarity = this.calculateCosineSimilarity(userVector, movie.vector);
+          // Calculate similarity using Euclidean distance
+          const similarity = this.calculateEuclideanSimilarity(userVector, movie.vector);
           
-          // Only log the movie name and similarity - keep this log
-          console.log(`Similarity for "${movie.movieName}": ${similarity.toFixed(4)}`);
+          // Log the movie name and similarity
+          console.log(`Euclidean Similarity for "${movie.movieName}": ${similarity.toFixed(4)}`);
           
           // Skip if below threshold
           if (similarity < similarityThreshold) continue;
@@ -283,6 +241,7 @@ class Recommender {
             similarity
           });
         } catch (error) {
+          console.error(`Error processing movie ${movie.movieName}:`, error);
         }
       }
       
@@ -312,8 +271,8 @@ class Recommender {
         .sort((a, b) => b.finalScore - a.finalScore)
         .slice(0, maxResults);
 
-      // Log the top recommendations - keep this log
-      console.log("\nTop recommendations:");
+      // Log the top recommendations
+      console.log("\nTop recommendations using Euclidean similarity:");
       sortedRecommendations.forEach((rec, index) => {
         console.log(`${index + 1}. "${rec.movieName}" - Similarity: ${rec.similarity.toFixed(4)}, Final Score: ${rec.finalScore.toFixed(4)}`);
       });
@@ -334,13 +293,13 @@ class Recommender {
         } : undefined
       }));
 
-      console.log("Recommendation process complete.");
+      console.log("Euclidean-based recommendation process complete.");
       return formattedResults;
     } catch (error) {
-      console.error('Error getting recommendations:', error);
+      console.error('Error getting recommendations with Euclidean similarity:', error);
       throw error;
     }
   }
 }
 
-export default Recommender; 
+export default EuclideanDistanceRecommender;
