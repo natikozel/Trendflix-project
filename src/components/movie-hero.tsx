@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Clock, Calendar, Star, Share2, Play, Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/Buton"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Check } from "./icons/check"

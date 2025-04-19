@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react"
 import { AnimatePresence } from "framer-motion"
 import { ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/Button"
+import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // Components
@@ -59,7 +59,6 @@ export default function MovieDetailsPage({ movieData }: { movieData: movieProps 
   const [localStorageData, setLocalStorageData] = useState<localStorageData>();
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -118,10 +117,10 @@ export default function MovieDetailsPage({ movieData }: { movieData: movieProps 
             <TabsTrigger value="details">Details</TabsTrigger>
             {/* <TabsTrigger value="cast">Cast & Crew</TabsTrigger> */}
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
-            <TabsTrigger value="similar">Similar Movies</TabsTrigger>
+            <TabsTrigger value="similar">Similar Match Percentage</TabsTrigger>
           </TabsList>
 
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="sync">
             {/* Details Tab */}
             <TabsContent value="details" className="space-y-6">
               <Suspense fallback={<MovieDetailsTabSkeleton />}>

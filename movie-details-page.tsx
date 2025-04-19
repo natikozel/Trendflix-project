@@ -3,7 +3,7 @@
 import { Suspense } from "react"
 import { AnimatePresence } from "framer-motion"
 import { ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/Buton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // Components

@@ -32,7 +32,7 @@ export default function SimilarMoviesTab({ similarMovies }: SimilarMoviesTabProp
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.h2 className="text-2xl font-bold mb-6" variants={itemVariants}>
-        Similar Movies You Might Like
+        Movies with Similar Match Percentage
       </motion.h2>
       <motion.div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
         {similarMovies.map((movie, index) => (

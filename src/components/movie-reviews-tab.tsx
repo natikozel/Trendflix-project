@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { Star } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/Buton"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 type Review = {

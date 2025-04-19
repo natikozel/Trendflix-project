@@ -16,8 +16,9 @@ function transformMovie(dbMovie: any) {
     duration: dbMovie.duration,
     genres: dbMovie.genres || [],
     synopsis: dbMovie.synopsis || 'No synopsis available.',
-    reviews: dbMovie.reviews.slice(0, 20).map((s: any) => s.text) || [],
+    reviews: dbMovie.reviews.slice(0, 20).map((s: any) => ({author: s.author, text: s.text})) || [],
     popularity: dbMovie.popularity,
+    ageRating: dbMovie.ageRating,
   };
   
   return movie;

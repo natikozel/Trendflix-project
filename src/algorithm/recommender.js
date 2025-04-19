@@ -179,26 +179,26 @@ class Recommender {
         weightedScore *= penaltyFactor;
       }
     }
-    // if (userPreferences?.age && movie?.ageRating) {
-    //   const ageRatingOrder = ['G', 'PG', 'PG-13', 'R', 'NC-17'];
-    //   const movieAgeRatingIndex = ageRatingOrder.indexOf(movie.ageRating);
-    //   const userAge = parseInt(userPreferences.age);
+    if (userPreferences?.age && movie?.ageRating) {
+      const ageRatingOrder = ['G', 'PG', 'PG-13', 'R', 'NC-17'];
+      const movieAgeRatingIndex = ageRatingOrder.indexOf(movie.ageRating);
+      const userAge = parseInt(userPreferences.age);
       
-    //   // Map user age to appropriate rating
-    //   let maxAllowedRatingIndex;
-    //   if (userAge < 13) {
-    //     maxAllowedRatingIndex = 1; // Up to PG
-    //   } else if (userAge < 17) {
-    //     maxAllowedRatingIndex = 2; // Up to PG-13
-    //   } else {
-    //     maxAllowedRatingIndex = 4; // All ratings allowed
-    //   }
+      // Map user age to appropriate rating
+      let maxAllowedRatingIndex;
+      if (userAge < 13) {
+        maxAllowedRatingIndex = 1; // Up to PG
+      } else if (userAge < 17) {
+        maxAllowedRatingIndex = 2; // Up to PG-13
+      } else {
+        maxAllowedRatingIndex = 4; // All ratings allowed
+      }
       
-    //   // If movie rating is higher than allowed for user's age, set score to 0
-    //   if (movieAgeRatingIndex > maxAllowedRatingIndex) {
-    //     weightedScore = 0;
-    //   }
-    // }
+      // If movie rating is higher than allowed for user's age, set score to 0
+      if (movieAgeRatingIndex > maxAllowedRatingIndex) {
+        weightedScore = 0;
+      }
+    }
 
     return weightedScore;
   }

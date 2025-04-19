@@ -31,8 +31,8 @@ export function normalizeMovieData(movieData, filename = '') {
   
   // Normalize field names (handle camelCase vs snake_case)
   normalized.releaseYear = normalized.release_year || normalized.releaseYear;
-  normalized.rating = normalized.rating || normalized.rating;
   normalized.posterUrl = normalized.poster_url || normalized.posterUrl;
+  normalized.ageRating = normalized.age_rating || normalized.ageRating || null;
   
   // Ensure arrays exist
   normalized.genres = Array.isArray(normalized.genres) ? normalized.genres : [];
@@ -42,18 +42,18 @@ export function normalizeMovieData(movieData, filename = '') {
     normalized.reviews = normalized.reviews.map(review => {
       // If review is just a string, convert it to object format
       if (typeof review === 'string') {
-        return { text: review };
+        return { text: review, author: 'Anonymous' };
       }
       
       // If review is already an object, ensure proper format
       if (review && typeof review === 'object') {
         return {
           text: review.text || review.content || '',
-          rating: typeof review.rating === 'number' ? review.rating : null
+          author: review.author || review.reviewer || 'Anonymous'
         };
       }
       
-      return { text: '' };
+      return { text: '', author: 'Anonymous' };
     });
   } else {
     normalized.reviews = [];
@@ -75,9 +75,7 @@ export function convertToDbFormat(movieData, vectorData = null) {
     synopsis: movieData.synopsis || '',
     reviews: movieData.reviews || [],
     popularity: typeof movieData.popularity === 'number' ? movieData.popularity : null,
-    rating: typeof movieData.rating === 'number' ? 
-                movieData.rating : 
-                (typeof movieData.rating === 'number' ? movieData.rating : null),
+    ageRating: movieData.ageRating || movieData.age_rating || null,
     posterUrl: movieData.posterUrl || movieData.poster_url || '',
     updatedAt: Date.now()
   };

@@ -1,6 +1,5 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 import VectorProcessor from '../algorithm/movieReviewsToVector.js';
 import { connectToDatabase, closeDatabase } from '../lib/db/mongodb.js';
 import Movie from '../lib/db/models/Movie.js';
@@ -9,7 +8,6 @@ import { loadMovieDataFromDirectory } from '../lib/utils/dataLoader.js';
 
 // Get the current directory
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 // Initialize vector processor
 const vectorProcessor = new VectorProcessor();
@@ -69,14 +67,34 @@ async function initializeMovieDatabase() {
     let vectorized = 0;
     let skipped = 0;
     let errors = 0;
+    let updatedAgeRating = 0;
+    let updatedAuthors = 0;
     
     // Process each movie
     for (const { data: movieData, source } of movies) {
       try {
         log(`Processing ${source}...`);
         
+        // Check for new fields
+        const hasAgeRating = movieData.age_rating !== undefined || movieData.ageRating !== undefined;
+        const hasAuthors = movieData.reviews && movieData.reviews.some(r => 
+          typeof r === 'object' && (r.author || r.reviewer));
+        
+        if (hasAgeRating) {
+          log(`Movie ${movieData.movie_name} has age_rating: ${movieData.age_rating || movieData.ageRating}`);
+          updatedAgeRating++;
+        }
+        
+        if (hasAuthors) {
+          log(`Movie ${movieData.movie_name} has review authors`);
+          updatedAuthors++;
+        }
+        
+        // Always update if force is true or if we have new fields
+        const shouldUpdate = force || hasAgeRating || hasAuthors;
+        
         // Skip if movie exists and not forcing update
-        if (!force && existingMovieIds.includes(movieData.movie_id)) {
+        if (!shouldUpdate && existingMovieIds.includes(movieData.movie_id)) {
           log(`Movie ${movieData.movie_name} already exists in database`);
           
           // If we're only updating vectors, check if it already has a vector
@@ -138,6 +156,8 @@ async function initializeMovieDatabase() {
     console.log('\nInitialization complete:');
     console.log(`Movies processed: ${processed}`);
     console.log(`Vectors generated: ${vectorized}`);
+    console.log(`Movies with age_rating updated: ${updatedAgeRating}`);
+    console.log(`Movies with review authors updated: ${updatedAuthors}`);
     console.log(`Skipped: ${skipped}`);
     console.log(`Errors: ${errors}`);
     console.log(`\nDatabase state:`);
@@ -149,6 +169,8 @@ async function initializeMovieDatabase() {
       vectorized,
       skipped,
       errors,
+      updatedAgeRating,
+      updatedAuthors,
       totalMovies: newTotalCount,
       vectorizedMovies: newVectorizedCount
     };

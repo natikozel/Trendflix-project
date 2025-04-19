@@ -1,8 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Star } from "lucide-react"
-import { Button } from "@/components/ui/Button"
+import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 type Review = {
@@ -42,15 +41,13 @@ export default function MovieReviewsTab({ reviews }: MovieReviewsTabProps) {
         variants={itemVariants}
       >
         <h2 className="text-2xl font-bold">Reviews</h2>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button>Write a Review</Button>
-        </motion.div>
+        
       </motion.div>
 
       <motion.div className="space-y-6">
         {reviews.map((review, index) => (
           <motion.div
-            key={review.author || review.text}
+            key={review.author + review.text.slice(0, 10)}
             className="bg-gray-900 rounded-xl p-4 sm:p-6"
             variants={itemVariants}
             custom={index}
@@ -62,7 +59,7 @@ export default function MovieReviewsTab({ reviews }: MovieReviewsTabProps) {
             <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarFallback>{review.author.charAt(0)}</AvatarFallback>
+                  <AvatarFallback className="text-black">{review.author.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
                   <h3 className="font-semibold">{review.author}</h3>

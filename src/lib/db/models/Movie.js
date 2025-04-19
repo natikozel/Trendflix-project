@@ -26,8 +26,10 @@ const MovieSchema = new mongoose.Schema({
   duration: Number,
   genres: [String],
   synopsis: String,
+  ageRating: String,
   reviews: [{
     text: String,
+    author: String,
   }],
   popularity: Number,
   rating: Number,

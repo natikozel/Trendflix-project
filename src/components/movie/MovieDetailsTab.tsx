@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { Star } from "lucide-react"
-import { Badge } from "@/components/ui/Badge"
+import { Badge } from "@/components/ui/badge"
 
 type MovieDetailsTabProps = {
   movie: any // In a real app, you'd use a proper type here
@@ -70,10 +70,14 @@ export default function MovieDetailsTab({ movie }: MovieDetailsTabProps) {
             </dd>
           </motion.div>
           <motion.div variants={itemVariants}>
+            <dt className="text-gray-400">Age Rating</dt>
+            <dd>{movie.ageRating}</dd>
+          </motion.div>
+          <motion.div variants={itemVariants}>
             <dt className="text-gray-400">Genres</dt>
             <dd className="flex flex-wrap gap-1 mt-1">
-              {movie.genres.map((genre: string) => (
-                <Badge key={genre} variant="secondary" className="bg-gray-800">
+              {movie.genres.map((genre: string, index: number) => (
+                <Badge key={index + genre} variant="secondary" className="bg-gray-800 text-white">
                   {genre}
                 </Badge>
               ))}
