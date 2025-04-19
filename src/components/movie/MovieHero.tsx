@@ -29,13 +29,20 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
     setIsInWatchlist(!isInWatchlist)
   }
 
-  const fetchTrailer = async (movieName: string) => {
+  const fetchTrailer = async (movieName: string, releaseYear: string) => {
     setTrailerError(null)
     
     try {
-      // First, search for the movie to get its TMDB ID
+      // First, search for the movie to get its TMDB ID using name and year
+      const query = `${movieName} ${releaseYear}`;
       const searchResponse = await fetch(
-        `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(movieName)}&include_adult=false`
+        `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(movieName)}&primary_release_year=${releaseYear}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${TMDB_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
       )
       
       if (!searchResponse.ok) {
@@ -45,7 +52,7 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
       const searchData = await searchResponse.json()
       
       if (!searchData.results || searchData.results.length === 0) {
-        throw new Error(`No results found for movie: ${movieName}`)
+        throw new Error(`No results found for movie: ${query}`)
       }
       
       // Get the first result's ID
@@ -53,7 +60,13 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
       
       // Then fetch the videos for this movie
       const videosResponse = await fetch(
-        `${TMDB_BASE_URL}/movie/${movieId}/videos?api_key=${TMDB_API_KEY}`
+        `${TMDB_BASE_URL}/movie/${movieId}/videos`,
+        {
+          headers: {
+            'Authorization': `Bearer ${TMDB_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
       )
       
       if (!videosResponse.ok) {
@@ -62,7 +75,7 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
       
       const videosData = await videosResponse.json()
       
-      // Find a trailer
+      // Find a trailer using the type attribute
       const trailer = videosData.results?.find(
         (video: any) => video.type === "Trailer" && video.site === "YouTube"
       )
@@ -71,6 +84,7 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
         throw new Error("No trailer found for this movie")
       }
       
+      // Use the key attribute for the YouTube video ID
       return `https://www.youtube.com/embed/${trailer.key}?autoplay=1`
     } catch (error) {
       console.error("Error fetching trailer:", error)
@@ -83,7 +97,7 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
     setTrailerOpen(true)
     
     try {
-      const url = await fetchTrailer(movie.movieName)
+      const url = await fetchTrailer(movie.movieName, movie.releaseYear)
       setTrailerUrl(url)
     } catch (error: any) {
       console.error("Failed to fetch trailer:", error)
