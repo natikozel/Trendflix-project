@@ -293,6 +293,58 @@ class MovieDatabaseService {
       return { totalMovies: 0, vectorizedMovies: 0, recentMovies: [] };
     }
   }
+
+  // Get all movie vectors as a map for efficient recommendation lookup
+  async getMovieVectors(genres = null, limit = 200) {
+    await this.initialize();
+    
+    try {
+      // Build the query based on whether genres are specified
+      const query = { vectorProcessed: true };
+      if (genres && Array.isArray(genres) && genres.length > 0) {
+        query.genres = { $in: genres };
+      }
+      
+      // Fetch the movies
+      const movies = await Movie.find(query)
+        .select({
+          movieId: 1,
+          title: 1,
+          movieName: 1,
+          vector: 1,
+          releaseYear: 1,
+          duration: 1,
+          genres: 1,
+          synopsis: 1,
+          rating: 1,
+          posterUrl: 1,
+          updatedAt: 1,
+          _id: 0
+        })
+        .sort({ updatedAt: -1 })
+        .limit(limit);
+      
+      // Convert to a Map with movieId as the key
+      const vectorMap = {};
+      
+      for (const movie of movies) {
+        vectorMap[movie.movieId] = {
+          title: movie.movieName || movie.title, // Handle different name fields
+          vector: movie.vector,
+          releaseYear: movie.releaseYear,
+          duration: movie.duration,
+          genres: movie.genres,
+          rating: movie.rating,
+          posterUrl: movie.posterUrl
+        };
+      }
+      
+      return vectorMap;
+    } catch (error) {
+      console.error('Error retrieving movie vectors:', error);
+      return {};
+    }
+  }
 }
 
 // Create a singleton instance

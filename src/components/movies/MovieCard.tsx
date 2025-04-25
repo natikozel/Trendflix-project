@@ -1,9 +1,13 @@
 'use client';
 
-import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import defaultPoster from '@/assets/default_poster.jpg';
+import FeedbackButtons from '../common/FeedbackButtons';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
+import { saveFeedback } from '@/app/actions/feedback';
+
 export interface Movie {
   movieId: string;
   movieName: string;
@@ -23,7 +27,8 @@ interface MovieCardProps {
 }
 
 const MovieCard = ({ movie }: MovieCardProps) => {
-  const [isHovered, setIsHovered] = useState(false);
+  // Get the current user input from Redux store
+  const userInputData = useSelector((state: RootState) => state.recommendations.userInput);
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -50,16 +55,37 @@ const MovieCard = ({ movie }: MovieCardProps) => {
     }
   };
 
+  const handleFeedbackSubmit = async (movieId: string, liked: boolean) => {
+    try {
+      if (!userInputData) {
+        throw new Error('No user input data available');
+      }
+      
+      // Call the server action directly instead of using fetch/API
+      const result = await saveFeedback(
+        movieId,
+        liked,
+        userInputData,
+        movie.finalScore
+      );
 
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to submit feedback');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      throw error;
+    }
+  };
 
   return (
-    <Link href={`/movie/${movie.movieId}`}>
-      <div
-        className="relative bg-gray-800 rounded-lg overflow-hidden transition-transform duration-300 hover:scale-105"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {/* Movie Poster */}
+    <div
+      className="relative bg-gray-800 rounded-lg overflow-hidden transition-transform duration-300 hover:scale-105"
+    >
+      {/* Movie Poster with Link */}
+      <Link href={`/movie/${movie.movieId}`}>
         <div className="relative aspect-[2/3]">
           <Image
             src={movie.metadata.posterUrl ? movie.metadata.posterUrl : defaultPoster}
@@ -68,62 +94,61 @@ const MovieCard = ({ movie }: MovieCardProps) => {
             className="object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         </div>
+      </Link>
 
-        {/* Movie Info */}
-        <div className="p-4">
+      {/* Movie Info */}
+      <div className="p-4">
+        <Link href={`/movie/${movie.movieId}`}>
           <h3 className="text-lg font-semibold text-white truncate">
             {movie.movieName}
           </h3>
+        </Link>
+        
+        <div className="mt-2 flex items-center gap-4 text-sm text-gray-400">
+          {movie.metadata.popularity && (
+            <div className="flex items-center">
+              <span className="text-yellow-400 mr-1">★</span>
+              {movie.metadata.popularity.toFixed(1)}
+            </div>
+          )}
           
-          <div className="mt-2 flex items-center gap-4 text-sm text-gray-400">
-            {movie.metadata.popularity && (
-              <div className="flex items-center">
-                <span className="text-yellow-400 mr-1">★</span>
-                {movie.metadata.popularity.toFixed(1)}
-              </div>
-            )}
-            
-            {movie.metadata.releaseYear && (
-              <span>{movie.metadata.releaseYear}</span>
-            )}
-            
-            {movie.metadata.duration && (
-              <span>{formatDuration(movie.metadata.duration)}</span>
-            )}
-          </div>
+          {movie.metadata.releaseYear && (
+            <span>{movie.metadata.releaseYear}</span>
+          )}
+          
+          {movie.metadata.duration && (
+            <span>{formatDuration(movie.metadata.duration)}</span>
+          )}
+        </div>
 
-          {/* Match Score */}
-          <div className="mt-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-400">Match Score</span>
-              <span className="text-sm font-medium text-blue-400">
-                {calculateMatchPercentage(movie.finalScore)}%
-              </span>
-            </div>
-            <div className="h-1 bg-gray-700 rounded-full mt-1">
-              <div
-                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
-                style={{ 
-                  width: `${calculateMatchPercentage(movie.finalScore)}%` 
-                }}
-              />
-            </div>
+        {/* Match Score */}
+        <div className="mt-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-400">Match Score</span>
+            <span className="text-sm font-medium text-blue-400">
+              {calculateMatchPercentage(movie.finalScore)}%
+            </span>
+          </div>
+          <div className="h-1 bg-gray-700 rounded-full mt-1">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+              style={{ 
+                width: `${calculateMatchPercentage(movie.finalScore)}%` 
+              }}
+            />
           </div>
         </div>
 
-        {/* Hover Overlay */}
-        {isHovered && (
-          <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-4">
-            <button className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors">
-              View Details
-            </button>
-          </div>
-        )}
+        {/* Feedback Buttons */}
+        <div className="mt-4 pt-3 border-t border-gray-700">
+          <FeedbackButtons 
+            movieId={movie.movieId} 
+            onFeedbackSubmit={handleFeedbackSubmit}
+          />
+        </div>
       </div>
-    </Link>
+    </div>
   );
 };
 

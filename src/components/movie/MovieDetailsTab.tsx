@@ -5,7 +5,7 @@ import { Star } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 type MovieDetailsTabProps = {
-  movie: any // In a real app, you'd use a proper type here
+  movie: any 
 }
 
 export default function MovieDetailsTab({ movie }: MovieDetailsTabProps) {

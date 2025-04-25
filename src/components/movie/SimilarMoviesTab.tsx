@@ -1,6 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
+import Link from "next/link"
 import { StoredMovie } from "./MovieDetails"
 
 
@@ -36,26 +37,27 @@ export default function SimilarMoviesTab({ similarMovies }: SimilarMoviesTabProp
       </motion.h2>
       <motion.div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
         {similarMovies.map((movie, index) => (
-          <motion.div
-            key={movie.movieId}
-            className="group cursor-pointer"
-            variants={itemVariants}
-            custom={index}
-            whileHover={{ y: -10 }}
-            transition={{ type: "spring", stiffness: 300, damping: 10 }}
-          >
-            <div className="aspect-[2/3] rounded-lg overflow-hidden mb-2 bg-gray-800">
-              <motion.img
-                src={movie.metadata.posterUrl || "/placeholder.svg"}
-                alt={movie.movieName}
-                className="w-full h-full object-cover"
-                whileHover={{ scale: 1.1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 10 }}
-              />
-            </div>
-            <h3 className="font-semibold group-hover:text-purple-400 transition-colors">{movie.movieName}</h3>
-            <p className="text-sm text-gray-400">{movie.metadata.releaseYear}</p>
-          </motion.div>
+          <Link href={`/movie/${movie.movieId}`} key={movie.movieId}>
+            <motion.div
+              className="group cursor-pointer"
+              variants={itemVariants}
+              custom={index}
+              whileHover={{ y: -10 }}
+              transition={{ type: "spring", stiffness: 300, damping: 10 }}
+            >
+              <div className="aspect-[2/3] rounded-lg overflow-hidden mb-2 bg-gray-800">
+                <motion.img
+                  src={movie.metadata.posterUrl || "/placeholder.svg"}
+                  alt={movie.movieName}
+                  className="w-full h-full object-cover"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 10 }}
+                />
+              </div>
+              <h3 className="font-semibold group-hover:text-purple-400 transition-colors">{movie.movieName}</h3>
+              <p className="text-sm text-gray-400">{movie.metadata.releaseYear}</p>
+            </motion.div>
+          </Link>
         ))}
       </motion.div>
     </motion.div>

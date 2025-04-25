@@ -1,6 +1,7 @@
 import VectorProcessor from './movieReviewsToVector.js';
 import UserInputProcessor from './userInputToVector.js';
 import movieDatabaseService from '../lib/db/services/MovieDatabaseService.js';
+import FeedbackUtils from './feedbackUtils.js';
 
 class Recommender {
   constructor() {
@@ -58,7 +59,6 @@ class Recommender {
       let dotProduct = 0;
       let magnitudeA = 0;
       let magnitudeB = 0;
-      let sharedDimensions = 0;
 
       dimensions.forEach(dim => {
         const a = getValue(vectorA, isMapA, dim);
@@ -67,11 +67,6 @@ class Recommender {
         // Check for valid numbers
         if (isNaN(a) || isNaN(b)) {
           return; // Skip this dimension
-        }
-        
-        // Track shared dimensions with non-zero values
-        if (a !== 0 && b !== 0) {
-          sharedDimensions++;
         }
         
         dotProduct += a * b;
@@ -96,7 +91,8 @@ class Recommender {
       }
       
       return similarity;
-    } catch (error) {
+    } catch (err) {
+      console.error('Error calculating similarity:', err);
       return 0;
     }
   }
@@ -212,7 +208,8 @@ class Recommender {
         maxResults = 9,
         similarityThreshold = 0.03,
         includeMetadata = true,
-        preferredGenres = []
+        preferredGenres = [],
+        useFeedbackData = true // New option to use feedback data
       } = options;
 
       // Process user input into vector
@@ -246,98 +243,71 @@ class Recommender {
       await movieDatabaseService.initialize();
       
       // Get vectorized movies from the database
-      // If user has preferred genres, use those to filter initially
       const hasGenrePreferences = preferredGenres && preferredGenres.length > 0;
-      const vectorizedMovies = hasGenrePreferences 
-        ? await movieDatabaseService.getVectorizedMoviesByGenres(preferredGenres, 200)
-        : await movieDatabaseService.getVectorizedMovies(200);
       
-      console.log(`Retrieved ${vectorizedMovies.length} vectorized movies from database`);
+      const movieVectors = await movieDatabaseService.getMovieVectors(
+        hasGenrePreferences ? preferredGenres : null
+      );
       
-      if (vectorizedMovies.length === 0) {
-        console.warn("No vectorized movies found in database");
-        return [];
-      }
+      // Calculate similarity scores
+      const results = [];
       
-      // Calculate similarities and collect candidates
-      const candidateMovies = [];
-      
-      for (const movie of vectorizedMovies) {
-        try {
-          // Check if movie has vector data
-          if (!movie.vector) {
-            continue;
+      for (const [movieId, movieData] of Object.entries(movieVectors)) {
+        if (!movieData.vector) continue;
+        
+        // Calculate base similarity score
+        const similarity = this.calculateCosineSimilarity(userVector, movieData.vector);
+        
+        // Apply metadata weights
+        let weightedScore = this.applyMetadataWeights(similarity, movieData, userPreferences);
+
+        // Incorporate feedback data if enabled
+        if (useFeedbackData) {
+          try {
+            // Apply feedback-based adjustment to the score
+            weightedScore = await FeedbackUtils.adjustScoreBasedOnFeedback(
+              movieId, 
+              weightedScore, 
+              userPreferences
+            );
+          } catch (error) {
+            console.error("Error applying feedback adjustment:", error);
+            // Continue without feedback adjustment if it fails
+          }
+        }
+        
+        // Only include movies above the threshold
+        if (weightedScore >= similarityThreshold) {
+          const result = {
+            movieId,
+            movieName: movieData.title || 'Unknown Movie',
+            similarity: similarity.toFixed(4),
+            finalScore: weightedScore.toFixed(4)
+          };
+          
+          // Add metadata if requested
+          if (includeMetadata) {
+            result.metadata = {
+              releaseYear: movieData.releaseYear,
+              duration: movieData.duration,
+              popularity: movieData.rating,
+              posterUrl: movieData.posterUrl,
+              genres: movieData.genres
+            };
           }
           
-          // Calculate similarity
-          const similarity = this.calculateCosineSimilarity(userVector, movie.vector);
-          
-          // Only log the movie name and similarity - keep this log
-          console.log(`Similarity for "${movie.movieName}": ${similarity.toFixed(4)}`);
-          
-          // Skip if below threshold
-          if (similarity < similarityThreshold) continue;
-          
-          candidateMovies.push({
-            movie,
-            similarity
-          });
-        } catch (error) {
+          results.push(result);
         }
       }
       
-      console.log(`\nFound ${candidateMovies.length} candidate movies above similarity threshold ${similarityThreshold}`);
+      // Sort by final weighted score (descending)
+      results.sort((a, b) => parseFloat(b.finalScore) - parseFloat(a.finalScore));
       
-      // Sort candidates by similarity
-      candidateMovies.sort((a, b) => b.similarity - a.similarity);
+      // Take top N results
+      return results.slice(0, maxResults);
       
-      // Apply additional weights and prepare final recommendations
-      const recommendations = candidateMovies.map(candidate => {
-        const { movie, similarity } = candidate;
-        
-        // Apply additional weights if needed
-        const finalScore = includeMetadata ? this.applyMetadataWeights(similarity, movie, userPreferences) : similarity;
-          
-        return {
-          movieId: movie.movieId,
-          movieName: movie.movieName,
-          similarity,
-          finalScore,
-          movie
-        };
-      });
-      
-      // Sort by final score and limit results
-      const sortedRecommendations = recommendations
-        .sort((a, b) => b.finalScore - a.finalScore)
-        .slice(0, maxResults);
-
-      // Log the top recommendations - keep this log
-      console.log("\nTop recommendations:");
-      sortedRecommendations.forEach((rec, index) => {
-        console.log(`${index + 1}. "${rec.movieName}" - Similarity: ${rec.similarity.toFixed(4)}, Final Score: ${rec.finalScore.toFixed(4)}`);
-      });
-
-      // Format results to return only necessary data
-      const formattedResults = sortedRecommendations.map(rec => ({
-        movieId: rec.movieId,
-        movieName: rec.movieName,
-        similarity: parseFloat(rec.similarity.toFixed(4)),
-        finalScore: parseFloat(rec.finalScore.toFixed(4)),
-        metadata: includeMetadata ? {
-          rating: rec.movie.rating,
-          releaseYear: rec.movie.releaseYear,
-          duration: rec.movie.duration,
-          genres: rec.movie.genres,
-          synopsis: rec.movie.synopsis?.substring(0, 200) + (rec.movie.synopsis?.length > 200 ? '...' : ''),
-          posterUrl: rec.movie.posterUrl
-        } : undefined
-      }));
-
-      console.log("Recommendation process complete.");
-      return formattedResults;
     } catch (error) {
-      console.error('Error getting recommendations:', error);
+      console.error("Error in recommendation process:", error);
       throw error;
     }
   }

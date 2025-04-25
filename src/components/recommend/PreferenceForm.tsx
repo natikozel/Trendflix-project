@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setLoading, setRecommendations } from '@/store/recommendationsSlice';
+import { setLoading, setRecommendations, setUserInput } from '@/store/recommendationsSlice';
 import TextInput from './TextInput';
 import DurationSlider from './DurationSlider';
 import GenreSelector from './GenreSelector';
@@ -25,12 +25,15 @@ const PreferenceForm = () => {
       minYear: 1895,
       maxYear: currentYear
     },
-    genres: []
+    genres: [] as string[]
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     dispatch(setLoading(true));
+    
+    // Save user input to Redux for feedback
+    dispatch(setUserInput(formData));
 
     try {
       const response = await fetch('/api/recommend', {
