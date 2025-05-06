@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     
     // Get recommendations with lower threshold to ensure we get more results
     const recommendations = await recommender.getRecommendations(userInput, {
-      maxResults: 5,
+      maxResults: 6,
       similarityThreshold: 0.02, // Lower threshold to get more results
       includeMetadata: true
     });
