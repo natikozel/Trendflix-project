@@ -128,6 +128,18 @@ class Recommender {
       weightedScore *= durationFactor;
     }
 
+    // Check for excluded genres - immediately set score to 0 if any genre matches an excluded genre
+    if (userPreferences?.excludedGenres && userPreferences.excludedGenres.length > 0 && movie?.genres) {
+      // Check if any movie genre is in the excluded list
+      const hasExcludedGenre = movie.genres.some(genre => 
+        userPreferences.excludedGenres.includes(genre)
+      );
+      
+      if (hasExcludedGenre) {
+        return 0; // Completely exclude this movie from recommendations
+      }
+    }
+
     // Genre matching (if user has preferred genres)
     if (userPreferences?.preferredGenres && userPreferences?.preferredGenres?.length > 0 && movie?.genres) {
       // Count how many preferred genres match
@@ -228,6 +240,9 @@ class Recommender {
 
       if (userInputData?.genres) {
         userPreferences.preferredGenres = userInputData.genres;
+      }
+      if (userInputData?.excludedGenres) {
+        userPreferences.excludedGenres = userInputData.excludedGenres;
       }
       if (userInputData?.age) {
         userPreferences.age = userInputData.age;

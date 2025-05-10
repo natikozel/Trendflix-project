@@ -25,7 +25,8 @@ const PreferenceForm = () => {
       minYear: 1895,
       maxYear: currentYear
     },
-    genres: [] as string[]
+    genres: [] as string[],
+    excludedGenres: [] as string[]
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -216,22 +217,13 @@ const PreferenceForm = () => {
         </label>
         <GenreSelector
           selectedGenres={formData.genres}
-          onChange={(genres) => setFormData(prev => ({ ...prev, genres }))}
+          excludedGenres={formData.excludedGenres}
+          onChange={(genres, excludedGenres) => setFormData(prev => ({ 
+            ...prev, 
+            genres,
+            excludedGenres
+          }))}
         />
-      </div>
-
-      <div className="flex items-center space-x-3 bg-gray-700/30 p-4 rounded-lg">
-        <input
-          type="checkbox"
-          id="preferNewReleases"
-          name="preferNewReleases"
-          checked={formData.preferNewReleases}
-          onChange={handleChange}
-          className="h-5 w-5 rounded border-gray-500 text-blue-500 focus:ring-blue-500/20 transition-all duration-200"
-        />
-        <label htmlFor="preferNewReleases" className="text-sm text-gray-200">
-          Prefer newer releases
-        </label>
       </div>
 
       <motion.button
