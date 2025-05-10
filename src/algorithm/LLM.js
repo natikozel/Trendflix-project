@@ -1,8 +1,8 @@
 // Gemini API Integration
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// This should be stored in an environment variable
-const GEMINI_API_KEY = 'AIzaSyBNtyIbkURBokJNJL5He5vwY8-ix6P72Ws';
+// Use environment variable for API key
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // Initialize the Gemini API client
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);

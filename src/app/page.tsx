@@ -17,12 +17,10 @@ export default function RecommendPage() {
         </h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left column: Preference Form */}
           <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
             <PreferenceForm />
           </div>
           
-          {/* Right column: Results */}
           <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
             <h2 className="text-2xl font-semibold mb-4">Your Recommendations</h2>
             <Suspense fallback={<Loading />}>

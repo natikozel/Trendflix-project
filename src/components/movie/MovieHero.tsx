@@ -239,7 +239,7 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
               <motion.div className="flex flex-wrap gap-3" variants={itemVariants}>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button className="bg-purple-600 hover:bg-purple-700" onClick={openTrailer}>
-                    <Play className="mr-2 h-4 w-4" /> Watch Trailer
+                    <Play className="mr-2 h-4 w-4 text-white" /> <span className="text-white">Watch Trailer</span>
                   </Button>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -254,15 +254,15 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
                       </>
                     ) : (
                       <>
-                        <Plus className="text-black mr-2 h-4 w-4" /> <span className="text-black">Add to Watchlist</span>
+                        <Plus className="text-white mr-2 h-4 w-4" /> <span className="text-white">Add to Watchlist</span>
                       </>
                     )}
                   </Button>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button variant="outline">
+                  {/* <Button variant="outline">
                     <Share2 className="text-black mr-2 h-4 w-4" /> <span className="text-black">Share</span>
-                  </Button>
+                  </Button> */}
                 </motion.div>
               </motion.div>
             </div>

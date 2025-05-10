@@ -8,18 +8,30 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Check } from "./icons/check"
 
-type MovieHeroProps = {
-  movie: any // In a real app, you'd use a proper type here
+interface Movie {
+  id: string;
+  title: string;
+  movieName?: string;
+  posterUrl: string;
+  genres: string[];
+  year: number;
+  duration: string;
+  rating: number;
+  matchScore: number;
+  plot: string;
+}
+
+interface MovieHeroProps {
+  movie: Movie;
 }
 
 export default function MovieHero({ movie }: MovieHeroProps) {
-  const [isInWatchlist, setIsInWatchlist] = useState(false)
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
 
   const toggleWatchlist = () => {
-    setIsInWatchlist(!isInWatchlist)
-  }
+    setIsInWatchlist(!isInWatchlist);
+  };
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -29,7 +41,7 @@ export default function MovieHero({ movie }: MovieHeroProps) {
         staggerChildren: 0.1,
       },
     },
-  }
+  };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -38,7 +50,7 @@ export default function MovieHero({ movie }: MovieHeroProps) {
       y: 0,
       transition: { type: "spring", stiffness: 300, damping: 24 },
     },
-  }
+  };
 
   return (
     <div
@@ -51,7 +63,6 @@ export default function MovieHero({ movie }: MovieHeroProps) {
     >
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
 
-      {/* Content Container */}
       <motion.div
         className="absolute bottom-0 left-0 right-0 w-full p-4 sm:p-6 z-10 mx-auto max-w-7xl"
         variants={containerVariants}
@@ -59,7 +70,6 @@ export default function MovieHero({ movie }: MovieHeroProps) {
         animate="visible"
       >
         <div className="flex flex-col md:flex-row gap-6 items-start">
-          {/* Poster */}
           <motion.div
             className="hidden md:block w-36 lg:w-48 h-auto aspect-[2/3] rounded-lg overflow-hidden shadow-2xl border border-gray-800 flex-shrink-0"
             variants={itemVariants}
@@ -69,11 +79,10 @@ export default function MovieHero({ movie }: MovieHeroProps) {
             <img src={movie.posterUrl || "/placeholder.svg"} alt={movie.title} className="w-full h-full object-cover" />
           </motion.div>
 
-          {/* Movie Info */}
           <div className="flex-1">
             <motion.div className="flex flex-wrap items-center gap-2 mb-2" variants={itemVariants}>
-              {movie.genres.map((genre, index) => (
-                <motion.div key={genre} variants={itemVariants} custom={index}>
+              {movie.genres.map((genre) => (
+                <motion.div key={genre} variants={itemVariants}>
                   <Badge variant="outline" className="bg-purple-900/50 text-purple-100 border-purple-700">
                     {genre}
                   </Badge>
@@ -100,7 +109,6 @@ export default function MovieHero({ movie }: MovieHeroProps) {
               </div>
             </motion.div>
 
-            {/* Match Score */}
             <motion.div className="mb-4" variants={itemVariants}>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-sm text-gray-400">Match Score</span>
@@ -119,7 +127,6 @@ export default function MovieHero({ movie }: MovieHeroProps) {
               {movie.plot}
             </motion.p>
 
-            {/* Action Buttons */}
             <motion.div className="flex flex-wrap gap-3" variants={itemVariants}>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button className="bg-purple-600 hover:bg-purple-700">
@@ -138,17 +145,17 @@ export default function MovieHero({ movie }: MovieHeroProps) {
                     </>
                   ) : (
                     <>
-                      <Plus className="mr-2 h-4 w-4" /> Add to Watchlist
+                      <Plus className="mr-2 h-4 w-4 text-white" /> Add to Watchlist
                     </>
                   )}
                 </Button>
               </motion.div>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              {/* <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button variant="outline">
                   <Share2 className="mr-2 h-4 w-4" /> Share
                 </Button>
               </motion.div>
-            </motion.div>
+            </motion.div> */}
           </div>
         </div>
       </motion.div>

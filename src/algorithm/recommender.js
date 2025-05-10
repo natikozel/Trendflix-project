@@ -100,12 +100,47 @@ class Recommender {
   // Apply additional weights based on movie metadata
   applyMetadataWeights(similarity, movie, userPreferences) {
     let weightedScore = similarity;
-
-    // console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n",userPreferences)
-    // if (movie.rating) {
-    //   const ratingBoost = 1 + (movie.rating / 20);
-    //   weightedScore *= ratingBoost;
-    // }
+    
+    // Title matching boost: Check if any of the movie titles match
+    if (movie?.movieName && userPreferences?.movieTitles && Array.isArray(userPreferences.movieTitles)) {
+      const movieTitle = movie.movieName.toLowerCase();
+      
+      // Check each movie title identified by the LLM
+      for (const title of userPreferences.movieTitles) {
+        const titleLower = title.toLowerCase();
+        
+        // Exact match (case insensitive)
+        if (movieTitle === titleLower) {
+          weightedScore *= 1.3;
+          break;
+        }
+        
+        // Partial matches
+        if (movieTitle.includes(titleLower) || titleLower.includes(movieTitle)) {
+          weightedScore *= 1.1;
+          break;
+        }
+        
+        // Check for multi-word matches
+        const movieTitleWords = movieTitle.split(/\s+/);
+        const titleWords = titleLower.split(/\s+/);
+        
+        // Count matching words
+        let matchCount = 0;
+        for (const movieWord of movieTitleWords) {
+          if (movieWord.length > 3 && titleWords.includes(movieWord)) {
+            matchCount++;
+          }
+        }
+        
+        // If multiple words match, apply a boost
+        if (matchCount > 1) {
+          const matchRatio = matchCount / Math.max(movieTitleWords.length, titleWords.length);
+          weightedScore *= (1.0 + matchRatio * 1.3); // Up to 3x boost
+          break;
+        }
+      }
+    }
 
     // Weight by release recency (if available)
     if (movie?.releaseYear && userPreferences?.preferNewReleases) {
@@ -170,8 +205,6 @@ class Recommender {
         
         // Calculate boost (max boost at midpoint, decreasing toward edges)
         const yearBoost = 1 + (1 - normalizedDistance) * 0.7;
-        // console.log(movie)
-        // console.log(`Year range boost for ${movie.movieName} (${movie.releaseYear}): ${yearBoost.toFixed(2)}`);
         weightedScore *= yearBoost;
       } else {
         // Movie is outside the range - apply a penalty based on how far outside
@@ -183,7 +216,6 @@ class Recommender {
         // Stronger penalty for movies further outside the range
         const penaltyFactor = Math.max(0.5, 1 - (distanceOutsideRange / 10) * 0.5);
         
-        console.log(`Year range penalty for ${movie.movieName} (${movie.releaseYear}): ${penaltyFactor.toFixed(2)}`);
         weightedScore *= penaltyFactor;
       }
     }
@@ -213,11 +245,9 @@ class Recommender {
 
   // Get recommendations based on user input
   async getRecommendations(userInputData, options = {}) {
-    try {
-      console.log("Starting recommendation process");
-      
+    try {      
       const {
-        maxResults = 9,
+        maxResults = 6,
         similarityThreshold = 0.03,
         includeMetadata = true,
         preferredGenres = [],
@@ -236,6 +266,11 @@ class Recommender {
         const processedData = await this.userProcessor.processUserInput(userInputData);
         userVector = processedData.vector;
         userPreferences = processedData.processedInput.preferences;
+        
+        // Add movie titles identified by the LLM to user preferences
+        if (processedData.processedInput?.movieTitles) {
+          userPreferences.movieTitles = processedData.processedInput.movieTitles;
+        }
       }
 
       if (userInputData?.genres) {
@@ -250,9 +285,6 @@ class Recommender {
       if (userInputData?.gender) {
         userPreferences.gender = userInputData.gender;
       }
-      // if (userInputData?.releaseYear) {
-      //   userPreferences.preferNewReleases = userInputData.releaseYear;
-      // }
 
       // Initialize the database connection
       await movieDatabaseService.initialize();
@@ -263,19 +295,14 @@ class Recommender {
       const movieVectors = await movieDatabaseService.getMovieVectors(
         hasGenrePreferences ? preferredGenres : null
       );
-      
       // Calculate similarity scores
       const results = [];
-      
       for (const [movieId, movieData] of Object.entries(movieVectors)) {
         if (!movieData.vector) continue;
         
-        // Calculate base similarity score
-        const similarity = this.calculateCosineSimilarity(userVector, movieData.vector);
-        
-        // Apply metadata weights
-        let weightedScore = this.applyMetadataWeights(similarity, movieData, userPreferences);
+        const similarity = this.calculateCosineSimilarity(userVector, movieData.vector);        
 
+        let weightedScore = this.applyMetadataWeights(similarity, movieData, userPreferences);
         // Incorporate feedback data if enabled
         if (useFeedbackData) {
           try {

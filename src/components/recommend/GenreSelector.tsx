@@ -46,7 +46,7 @@ const GenreSelector = ({ selectedGenres, excludedGenres, onChange }: GenreSelect
                 ${isSelected
                   ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/20'
                   : isExcluded
-                    ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/20'
+                    ? 'bg-gradient-to-r from-red-300 to-rose-200 text-black shadow-lg shadow-red-300/20'
                     : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600'
                 }`}
               whileHover={{ scale: 1.05 }}

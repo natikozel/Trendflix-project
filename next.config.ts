@@ -21,7 +21,6 @@ const nextConfig: NextConfig = {
   
       return config;
     },
-    silent: true,
 
   images: {
     remotePatterns: [

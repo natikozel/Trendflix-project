@@ -1,15 +1,3 @@
-/**
- * Pearson Correlation Recommender
- * 
- * This recommender uses Pearson correlation to compare user preferences with movies.
- * Pearson correlation measures linear correlation between two sets of data,
- * giving values between -1 (perfectly negatively correlated) to 1 (perfectly correlated).
- * 
- * Unlike cosine similarity, Pearson correlation considers the "centered" vectors,
- * making it more robust to differences in scale and offset, focusing on the pattern
- * of dimensions rather than their absolute values.
- */
-
 import VectorProcessor from './movieReviewsToVector.js';
 import UserInputProcessor from './userInputToVector.js';
 import movieDatabaseService from '../lib/db/services/MovieDatabaseService.js';

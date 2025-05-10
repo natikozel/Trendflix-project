@@ -4,8 +4,19 @@ import { motion } from "framer-motion"
 import { Star } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
-type MovieDetailsTabProps = {
-  movie: any // In a real app, you'd use a proper type here
+interface MovieDetails {
+  id: string;
+  title: string;
+  longPlot: string;
+  director: string;
+  year: number;
+  duration: string;
+  rating: number;
+  genres: string[];
+}
+
+interface MovieDetailsTabProps {
+  movie: MovieDetails;
 }
 
 export default function MovieDetailsTab({ movie }: MovieDetailsTabProps) {
@@ -13,10 +24,7 @@ export default function MovieDetailsTab({ movie }: MovieDetailsTabProps) {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        when: "beforeChildren",
-        staggerChildren: 0.1,
-      },
+      transition: { staggerChildren: 0.1 },
     },
   }
 
@@ -25,7 +33,6 @@ export default function MovieDetailsTab({ movie }: MovieDetailsTabProps) {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { type: "spring", stiffness: 300, damping: 24 },
     },
   }
 
@@ -44,9 +51,6 @@ export default function MovieDetailsTab({ movie }: MovieDetailsTabProps) {
       <motion.div
         className="bg-gray-900 rounded-xl p-6 h-fit"
         variants={itemVariants}
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24 }}
       >
         <h3 className="text-xl font-semibold mb-4">Movie Info</h3>
         <dl className="space-y-4">

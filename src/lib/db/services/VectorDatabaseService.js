@@ -1,5 +1,5 @@
 import { connectToDatabase } from '../mongodb.js';
-import MovieVector from '../models/MovieVector';
+import Movie from '../models/Movie.js';
 import mongoose from 'mongoose';
 
 class VectorDatabaseService {
@@ -36,7 +36,7 @@ class VectorDatabaseService {
       };
 
       // Update if exists, insert if not (upsert)
-      const result = await MovieVector.findOneAndUpdate(
+      const result = await Movie.findOneAndUpdate(
         { movieId },
         { 
           movieId, 

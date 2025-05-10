@@ -166,6 +166,23 @@ class UserInputProcessor {
       // Create a more structured prompt for the LLM that will return data in a usable format
       const llmPrompt = `
         You are a movie recommendation system analyzing user input.
+        
+        FIRST STEP - INPUT VALIDATION:
+        Evaluate if the user's input provides enough meaningful information to generate quality movie recommendations.
+        The input should contain specific preferences, genres, themes, or movie qualities the user is interested in.
+        
+        Input quality requirements:
+        - Must contain meaningful words (not just dots, single letters, or gibberish)
+        - Must express actual movie preferences or interests
+        - Must be specific enough to identify user tastes
+        
+        If the input fails these checks, return ONLY:
+        {
+          "validationError": true,
+          "errorMessage": "Please provide more specific information about your movie preferences. For example, describe genres, themes, or movies you've enjoyed in the past."
+        }
+        
+        SECOND STEP - ONLY IF INPUT IS VALID:
         Extract and classify the following from the user's request:
         
         1. Keywords: Identify the main meaningful words (nouns, adjectives, verbs) that describe what the user wants
@@ -173,6 +190,7 @@ class UserInputProcessor {
         3. Mood: Classify the overall mood the user is looking for (exciting, relaxing, intense, thought-provoking, etc.)
         4. Time/Duration preferences: Any mentions of movie length or time constraints
         5. Content preferences: Any specific themes, plot elements, or content types
+        6. Movie Titles: Identify any specific movie titles mentioned by the user (these will be given higher priority)
 
         Return the result in JSON format with these exact keys:
         {
@@ -184,6 +202,7 @@ class UserInputProcessor {
               "negative": number from 0-10,
               "neutral": number from 0-10
             },
+            "movieTitles": ["movie1", "movie2", ...] 
           }
         }
 
@@ -196,6 +215,14 @@ class UserInputProcessor {
       // Log the response for debugging
       console.log("LLM Processed Input:", JSON.stringify(llmResponse, null, 2));
       
+      // Check if the input validation failed
+      if (llmResponse?.validationError === true) {
+        return {
+          validationError: true,
+          errorMessage: llmResponse.errorMessage || "Please provide more specific information about your movie preferences."
+        };
+      }
+      
       // Extract the processed structure from the LLM response with defaults
       const processedData = {
         processedInput: {
@@ -206,12 +233,28 @@ class UserInputProcessor {
             negative: Number(llmResponse?.processedInput?.moodScores?.negative) || 0,
             neutral: Number(llmResponse?.processedInput?.moodScores?.neutral) || 0
           },
+          movieTitles: Array.isArray(llmResponse?.processedInput?.movieTitles) ? llmResponse.processedInput.movieTitles : [],
           timeConstraint: Number(llmResponse?.processedInput?.timeConstraint) || null
         }
       };
       
       // Create vector representation from the processed data
       const vector = {};
+      
+      // Add movie titles as high-weight keywords
+      if (processedData.processedInput.movieTitles.length > 0) {
+        processedData.processedInput.movieTitles.forEach(title => {
+          vector[`title_${title.toLowerCase().replace(/\s+/g, '_')}`] = 2.0;
+          
+          // Also add individual words from movie titles to improve matching
+          const titleWords = title.toLowerCase().split(/\s+/);
+          titleWords.forEach(word => {
+            if (word.length > 3) { // Only add significant words
+              vector[word] = (vector[word] || 0) + 1.0;
+            }
+          });
+        });
+      }
       
       // Add keyword weights
       if (processedData.processedInput.keywords.length > 0) {
@@ -326,6 +369,7 @@ class UserInputProcessor {
           keywords: [],
           genres: [],
           moodScores: { positive: 0, negative: 0, neutral: 0 },
+          movieTitles: [],
           timeConstraint: null,
           demographics: {
             age: 25,

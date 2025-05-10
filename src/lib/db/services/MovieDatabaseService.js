@@ -295,7 +295,7 @@ class MovieDatabaseService {
   }
 
   // Get all movie vectors as a map for efficient recommendation lookup
-  async getMovieVectors(genres = null, limit = 200) {
+  async getMovieVectors(genres = null) {
     await this.initialize();
     
     try {
@@ -322,7 +322,6 @@ class MovieDatabaseService {
           _id: 0
         })
         .sort({ updatedAt: -1 })
-        .limit(limit);
       
       // Convert to a Map with movieId as the key
       const vectorMap = {};

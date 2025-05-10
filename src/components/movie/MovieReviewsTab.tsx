@@ -59,7 +59,7 @@ export default function MovieReviewsTab({ reviews }: MovieReviewsTabProps) {
             <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarFallback className="text-black">{review.author.charAt(0)}</AvatarFallback>
+                  <AvatarFallback className="text-white">{review.author.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
                   <h3 className="font-semibold">{review.author}</h3>
