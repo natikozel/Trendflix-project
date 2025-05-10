@@ -1,5 +1,5 @@
 import { generateGeminiResponse } from './LLM.js';
-import { getGenreVectorsFromDB } from './getGenreVector.js';
+import GenreVectorService from '../lib/db/services/genreVectorService.js';
 
 /**
  * Prompt template for the LLM to analyze user preference match with movie genre vector
@@ -43,14 +43,14 @@ IMPORTANT:
  */
 export async function analyzeUserPreferenceMatch(userInput, movieId) {
     try {
-        // Get the movie's genre vector from the database
-        const vectors = await getGenreVectorsFromDB(movieId);
+        // Get the movie's genre vector from the database using the service
+        const vector = await GenreVectorService.getByMovieId(movieId);
         
-        if (!vectors || vectors.length === 0) {
+        if (!vector) {
             throw new Error(`No genre vector found for movie ID: ${movieId}`);
         }
 
-        const movieVector = vectors[0].genreVector;
+        const movieVector = vector.genreVector;
 
         // Create the prompt with the movie vector and user input
         const prompt = MATCH_ANALYSIS_PROMPT
