@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Clock, Calendar, Star, Share2, Play, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Check } from "@/components/check"
-import { localStorageData, movieProps, StoredMovie } from "./MovieDetails"
+import { localStorageData, movieProps } from "./MovieDetails"
 
 // TMDB API configuration
 const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY || "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJhMTA2YzUxZDIzZTlkYjQ4OGI0MDc4YjA0ODIwMzdhZiIsIm5iZiI6MTc0MzI1OTUzOC44ODIsInN1YiI6IjY3ZTgwNzkyNmIzNjdkNDY5NTY3YmZhNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.xs8URWnkdu6teP6FooMttGgpyfF5qgym8wj1kjLBiKU" // Replace with your actual API key
@@ -97,7 +97,7 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
     setTrailerOpen(true)
     
     try {
-      const url = await fetchTrailer(movie.movieName, movie.releaseYear)
+      const url = await fetchTrailer(movie?.movieName, movie?.releaseYear as unknown as string)
       setTrailerUrl(url)
     } catch (error: any) {
       console.error("Failed to fetch trailer:", error)
@@ -227,7 +227,7 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
                   animate={{ width: "100%" }}
                   transition={{ delay: 0.5, duration: 0.8, ease: "easeOut" }}
                 >
-                  <Progress value={localStorageData.matchScore} className="h-1.5 w-48" />
+                  <Progress value={localStorageData.matchScore} className="h-1.5 w-48 bg-gray-600" />
                 </motion.div>
               </motion.div>
 

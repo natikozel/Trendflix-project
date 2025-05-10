@@ -34,7 +34,7 @@ function cleanResponseText(text) {
 export async function generateGeminiResponse(prompt) {
     try {
         // Get the Gemini Pro model
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-04-17' });
 
         // Generate content
         const result = await model.generateContent(prompt);
@@ -58,3 +58,4 @@ export async function generateGeminiResponse(prompt) {
         throw new Error('Failed to generate response from Gemini');
     }
 }
+

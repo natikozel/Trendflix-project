@@ -77,7 +77,7 @@ const DurationSlider = ({ value, onChange }: DurationSliderProps) => {
             y: isDragging ? -2 : 0
           }}
         >
-          {formatDuration(value)}
+          {/* {formatDuration(value)} */}
         </motion.div>
       </div>
       <div className="flex justify-between text-xs text-gray-400">

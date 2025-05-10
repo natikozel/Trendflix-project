@@ -7,7 +7,6 @@ const recommender = new Recommender();
 export async function POST(request: Request) {
   try {
     const userInput = await request.json();
-    
     // Get recommendations with lower threshold to ensure we get more results
     const recommendations = await recommender.getRecommendations(userInput, {
       maxResults: 6,

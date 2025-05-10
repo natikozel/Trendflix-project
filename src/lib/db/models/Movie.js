@@ -31,8 +31,7 @@ const MovieSchema = new mongoose.Schema({
     text: String,
     author: String,
   }],
-  popularity: Number,
-  rating: Number,
+  popularity: Number,  
   posterUrl: String,
   // Processing flags
   vectorProcessed: {

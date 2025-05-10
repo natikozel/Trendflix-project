@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setLoading, setRecommendations } from '@/store/recommendationsSlice';
+import { setLoading, setRecommendations, setUserInput } from '@/store/recommendationsSlice';
 import TextInput from './TextInput';
 import DurationSlider from './DurationSlider';
 import GenreSelector from './GenreSelector';
@@ -25,12 +25,15 @@ const PreferenceForm = () => {
       minYear: 1895,
       maxYear: currentYear
     },
-    genres: []
+    genres: [] as string[]
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     dispatch(setLoading(true));
+    
+    // Save user input to Redux for feedback
+    dispatch(setUserInput(formData));
 
     try {
       const response = await fetch('/api/recommend', {
@@ -95,17 +98,49 @@ const PreferenceForm = () => {
           <label htmlFor="age" className="block text-sm font-medium text-gray-200">
             Age
           </label>
-          <input
-            type="number"
-            id="age"
-            name="age"
-            value={formData.age}
-            onChange={handleChange}
-            min="13"
-            max="100"
-            className="w-full px-4 py-2.5 bg-gray-700/50 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
-            required
-          />
+          <div className="relative">
+            <input
+              type="number"
+              id="age"
+              name="age"
+              value={formData.age}
+              onChange={handleChange}
+              min="13"
+              max="100"
+              className="w-full px-4 py-2.5 bg-gray-700/50 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+              required
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center">
+              <div className="flex flex-col h-full">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newValue = Math.min(100, formData.age + 1);
+                    setFormData(prev => ({ ...prev, age: newValue }));
+                  }}
+                  className="flex-1 flex items-center justify-center px-2 bg-gray-600/30 hover:bg-gray-600/50 rounded-tr-lg border-l border-gray-600 text-gray-300 transition-colors"
+                  tabIndex={-1}
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newValue = Math.max(13, formData.age - 1);
+                    setFormData(prev => ({ ...prev, age: newValue }));
+                  }}
+                  className="flex-1 flex items-center justify-center px-2 bg-gray-600/30 hover:bg-gray-600/50 rounded-br-lg border-l border-t border-gray-600 text-gray-300 transition-colors"
+                  tabIndex={-1}
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-2">

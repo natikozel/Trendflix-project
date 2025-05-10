@@ -7,8 +7,6 @@ let connectionPromise = null;
 
 // Configure mongoose options
 const options = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   maxPoolSize: 10, // Limit the number of socket connections
   serverSelectionTimeoutMS: 5000, // Timeout for server selection
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity

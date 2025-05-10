@@ -13,16 +13,32 @@ interface Movie {
   };
 }
 
+export interface UserInput {
+  freeText?: string;
+  age?: number;
+  gender?: string;
+  preferredDuration?: number;
+  preferredLanguage?: string;
+  preferNewReleases?: boolean;
+  yearRange?: {
+    minYear: number;
+    maxYear: number;
+  };
+  genres?: string[];
+}
+
 interface RecommendationsState {
   items: Movie[];
   isLoading: boolean;
   error: string | null;
+  userInput: UserInput | null;
 }
 
 const initialState: RecommendationsState = {
   items: [],
   isLoading: false,
-  error: null
+  error: null,
+  userInput: null
 };
 
 const recommendationsSlice = createSlice({
@@ -44,6 +60,9 @@ const recommendationsSlice = createSlice({
     clearRecommendations: (state) => {
       state.items = [];
       state.error = null;
+    },
+    setUserInput: (state, action: PayloadAction<UserInput>) => {
+      state.userInput = action.payload;
     }
   }
 });
@@ -52,7 +71,8 @@ export const {
   setRecommendations,
   setLoading,
   setError,
-  clearRecommendations
+  clearRecommendations,
+  setUserInput
 } = recommendationsSlice.actions;
 
 export default recommendationsSlice.reducer; 

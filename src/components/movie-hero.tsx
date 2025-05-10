@@ -82,7 +82,7 @@ export default function MovieHero({ movie }: MovieHeroProps) {
             </motion.div>
 
             <motion.h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2" variants={itemVariants}>
-              {movie.title}
+              {movie?.movieName || movie?.title}
             </motion.h1>
 
             <motion.div className="flex flex-wrap items-center gap-4 text-gray-300 mb-4" variants={itemVariants}>
