@@ -36,8 +36,6 @@ class VectorProcessor {
 
   // Preprocess text by removing punctuation, converting to lowercase, and removing stopwords
   preprocessText(text) {
-    // console.log(`Preprocessing text (${text.length} characters)`);
-    
     let processedText = text.toLowerCase();
 
     // Preserve hyphenated words by replacing hyphen with a special marker
@@ -55,8 +53,6 @@ class VectorProcessor {
     const tokens = processedText
       .split(/\s+/)
       .filter(word => !this.stopwords.has(word) && word.length > 2);
-    
-    // console.log(`Preprocessed to ${tokens.length} tokens`);
 
     // Join back into a string for TF-IDF processing
     return tokens.join(' ');
@@ -64,7 +60,6 @@ class VectorProcessor {
 
   // Process reviews and create a TF-IDF vector
   processReviews(reviews) {
-    
     if (!reviews || reviews.length === 0) {
       console.error("No reviews found to process");
       // Return a minimal valid vector to prevent errors downstream
@@ -86,7 +81,6 @@ class VectorProcessor {
       try {
         const processedText = this.preprocessText(review.text);
         this.tfidf.addDocument(processedText);
-        // console.log(`Added review ${index+1}/${reviews.length} (${processedText.length} characters)`);
       } catch (error) {
         console.error(`Error processing review ${index}:`, error.message);
       }
@@ -100,8 +94,6 @@ class VectorProcessor {
       };
     }
 
-    
-
     // Extract key terms and their weights
     const vector = {};
     const terms = new Set();
@@ -111,8 +103,6 @@ class VectorProcessor {
       Object.keys(doc).forEach(term => terms.add(term));
     });
     
-    
-
     // Calculate weights for each term
     terms.forEach(term => {
       let totalWeight = 0;
@@ -143,15 +133,11 @@ class VectorProcessor {
       }
     });
     
-    
-
     // Normalize vector weights
     const magnitude = Math.sqrt(
       Object.values(vector).reduce((sum, weight) => sum + weight * weight, 0) || 1
     );
     
-    
-
     Object.keys(vector).forEach(term => {
       vector[term] = vector[term] / magnitude;
     });
@@ -161,7 +147,6 @@ class VectorProcessor {
       Object.values(vector).reduce((sum, weight) => sum + weight * weight, 0)
     );
     
-
     return {
       dimensions: Object.keys(vector),
       vector: vector
@@ -170,8 +155,6 @@ class VectorProcessor {
 
   // Process a single movie's reviews and generate its vector representation
   processMovie(movieData) {
-    
-    
     if (!movieData) {
       console.error("MovieData is undefined or null");
       throw new Error("Invalid movie data: undefined or null");
@@ -186,8 +169,6 @@ class VectorProcessor {
     
     // Process all reviews to create the movie's vector representation
     const { dimensions, vector } = this.processReviews(reviews);
-    
-    
     
     return {
       movieId: movieData.movie_id,
@@ -204,6 +185,5 @@ class VectorProcessor {
     };
   }
 }
-
 
 export default VectorProcessor;

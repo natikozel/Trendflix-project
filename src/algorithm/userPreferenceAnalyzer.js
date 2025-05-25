@@ -1,9 +1,6 @@
 import { generateGeminiResponse } from './LLM.js';
 import { fileURLToPath } from 'url';
 
-/**
- * Prompt template for the LLM to analyze user preferences and generate a genre vector
- */
 const USER_PREFERENCE_PROMPT = `
 User Preference Analysis Task
 
@@ -43,24 +40,15 @@ OUTPUT FORMAT:
 Return only a valid JSON object with the attributes and their values. Do not include any explanation or text before or after the JSON.
 `;
 
-/**
- * Analyzes user input to generate a personalized genre preference vector
- * @param {string} userInput - The user's text description of their movie preferences
- * @returns {Promise<Object>} A genre vector object with attribute-score pairs
- */
 export async function generateUserPreferenceVector(userInput) {
     try {
         if (!userInput || userInput.trim() === '') {
             throw new Error('User input cannot be empty');
         }
 
-        // Create the prompt with the user's input
         const prompt = USER_PREFERENCE_PROMPT.replace('{USER_INPUT}', userInput);
-
-        // Get the LLM response
         const response = await generateGeminiResponse(prompt);
 
-        // Validate that response has all required attributes
         const requiredAttributes = [
             'Action', 'Romance', 'SciFiFantasy', 'Comedy', 'ThrillerSuspense', 
             'EmotionalDepth', 'Violence', 'FamilyFriendliness', 'Pace', 'VisualEffects',
@@ -69,13 +57,11 @@ export async function generateUserPreferenceVector(userInput) {
             'MovieLength'
         ];
 
-        // Check if all required attributes are present
         const missingAttributes = requiredAttributes.filter(attr => !(attr in response));
         if (missingAttributes.length > 0) {
             throw new Error(`Missing attributes in response: ${missingAttributes.join(', ')}`);
         }
 
-        // Ensure all values are between 0 and 1
         for (const [key, value] of Object.entries(response)) {
             if (typeof value !== 'number' || value < 0 || value > 1) {
                 throw new Error(`Invalid value for attribute ${key}: ${value}. Values must be numbers between 0 and 1.`);
@@ -89,12 +75,7 @@ export async function generateUserPreferenceVector(userInput) {
     }
 }
 
-/**
- * Test function with mock user input
- * @returns {Promise<void>}
- */
 export async function testUserPreferenceAnalysis() {
-    // Mock user input for testing
     const mockUserInput = `
     I love sci-fi movies with lots of visual effects and action sequences. 
     My favorite films usually have complex plots that make me think and interesting 
@@ -116,5 +97,4 @@ export async function testUserPreferenceAnalysis() {
     }
 }
 
-// Export default function
 export default generateUserPreferenceVector;

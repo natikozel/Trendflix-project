@@ -18,12 +18,10 @@ interface Movie {
 export async function loadMovieData(): Promise<Movie[]> {
   try {
     const dataDir = join(process.cwd(), 'src/data');
-    // List files in directory
     const files = await readdir(dataDir);
     
     const movieData: Movie[] = [];
 
-    // Process each JSON file
     for (const file of files) {
       if (file.endsWith('.json')) {
         try {
@@ -31,7 +29,6 @@ export async function loadMovieData(): Promise<Movie[]> {
           const rawData = await readFile(filePath, 'utf8');
           const data = JSON.parse(rawData);
           
-          // Validate and clean the data
           const movie: Movie = {
             movie_id: data.movie_id || file.replace('.json', ''),
             movie_name: data.movie_name || data.movie_id || 'Unknown Movie',
@@ -42,12 +39,10 @@ export async function loadMovieData(): Promise<Movie[]> {
             reviews: Array.isArray(data.reviews) ? data.reviews : []
           };
 
-          // Ensure reviews have the correct structure
           movie.reviews = movie.reviews.map(review => ({
             text: typeof review === 'string' ? review : review.text || ''
           }));
 
-          // Add sample reviews if none exist
           if (movie.reviews.length === 0) {
             movie.reviews = [
               { text: `Sample review for ${movie.movie_name}` },
@@ -69,7 +64,6 @@ export async function loadMovieData(): Promise<Movie[]> {
   }
 }
 
-// Helper function to validate movie data
 export function validateMovieData(movie: Movie): boolean {
   return (
     typeof movie.movie_id === 'string' &&
@@ -79,7 +73,6 @@ export function validateMovieData(movie: Movie): boolean {
   );
 }
 
-// Helper function to clean movie data
 export function cleanMovieData(movie: Movie): Movie {
   return {
     movie_id: movie.movie_id || 'unknown',

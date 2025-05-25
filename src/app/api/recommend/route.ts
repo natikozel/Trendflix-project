@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import Recommender from '@/algorithm/recommender.js';
 
-// Create a new recommender instance
 const recommender = new Recommender();
 
-// Define a type for the validation result
 type ProcessedResult = {
   validationError?: boolean;
   errorMessage?: string;
@@ -16,10 +14,8 @@ export async function POST(request: Request) {
   try {
     let userInput = await request.json();
     
-    // Process user input which now includes validation
     const processedResult = await recommender.userProcessor.processUserInput(userInput) as ProcessedResult;
     
-    // Check if there was a validation error
     if (processedResult.validationError) {
       return NextResponse.json({
         validationError: true,
@@ -28,10 +24,9 @@ export async function POST(request: Request) {
     }
     
     userInput.processedData = processedResult;
-    // If input is valid, get recommendations
     const recommendations = await recommender.getRecommendations(userInput, {
       maxResults: 6,
-      similarityThreshold: 0.02, // Lower threshold to get more results
+      similarityThreshold: 0.02,
       includeMetadata: true
     });
     
@@ -43,4 +38,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-} 
+}

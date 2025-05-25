@@ -6,43 +6,33 @@ import Movie from '../lib/db/models/Movie.js';
 import movieDatabaseService from '../lib/db/services/MovieDatabaseService.js';
 import { loadMovieDataFromDirectory } from '../lib/utils/dataLoader.js';
 
-// Get the current directory
 const __filename = fileURLToPath(import.meta.url);
 
-// Initialize vector processor
 const vectorProcessor = new VectorProcessor();
 
-// Parse command line arguments
 const args = process.argv.slice(2);
 const force = args.includes('--force');
 const verbose = args.includes('--verbose');
 const metadataOnly = args.includes('--metadata-only');
 
-// Helper for logging when verbose is enabled
 function log(...messages) {
   if (verbose) {
     console.log(...messages);
   }
 }
 
-/**
- * Initialize the movie database
- */
 async function initializeMovieDatabase() {
   console.log('Initializing movie database...');
   console.log(`Force reprocessing: ${force ? 'Yes' : 'No'}`);
   console.log(`Metadata only: ${metadataOnly ? 'Yes' : 'No'}`);
   
   try {
-    // Connect to MongoDB
     await connectToDatabase();
     
-    // Get current statistics
     const totalCount = await Movie.countDocuments();
     const vectorizedCount = await Movie.countDocuments({ vectorProcessed: true });
     console.log(`Current database state: ${totalCount} movies, ${vectorizedCount} with vectors`);
     
-    // Get existing movie IDs from the database if not forcing reprocessing
     let existingMovieIds = [];
     let vectorizedMovieIds = [];
     if (!force) {
@@ -55,14 +45,11 @@ async function initializeMovieDatabase() {
       log(`Found ${existingMovieIds.length} existing movies, ${vectorizedMovieIds.length} with vectors`);
     }
     
-    // Path to data folder containing movie JSONs
     const dataFolder = path.join(process.cwd(), 'src', 'data');
     console.log(`Looking for movie data in: ${dataFolder}`);
     
-    // Load all movie data from the directory
     const movies = loadMovieDataFromDirectory(dataFolder);
     
-    // Track statistics
     let processed = 0;
     let vectorized = 0;
     let skipped = 0;
@@ -70,12 +57,10 @@ async function initializeMovieDatabase() {
     let updatedAgeRating = 0;
     let updatedAuthors = 0;
     
-    // Process each movie
     for (const { data: movieData, source } of movies) {
       try {
         log(`Processing ${source}...`);
         
-        // Check for new fields
         const hasAgeRating = movieData.age_rating !== undefined || movieData.ageRating !== undefined;
         const hasAuthors = movieData.reviews && movieData.reviews.some(r => 
           typeof r === 'object' && (r.author || r.reviewer));
@@ -90,14 +75,11 @@ async function initializeMovieDatabase() {
           updatedAuthors++;
         }
         
-        // Always update if force is true or if we have new fields
         const shouldUpdate = force || hasAgeRating || hasAuthors;
         
-        // Skip if movie exists and not forcing update
         if (!shouldUpdate && existingMovieIds.includes(movieData.movie_id)) {
           log(`Movie ${movieData.movie_name} already exists in database`);
           
-          // If we're only updating vectors, check if it already has a vector
           if (!metadataOnly && !vectorizedMovieIds.includes(movieData.movie_id)) {
             log(`Movie ${movieData.movie_name} exists but needs vector processing`);
           } else {
@@ -107,7 +89,6 @@ async function initializeMovieDatabase() {
           }
         }
         
-        // Always store metadata
         try {
           await movieDatabaseService.storeMovie(movieData);
           processed++;
@@ -118,22 +99,18 @@ async function initializeMovieDatabase() {
           continue;
         }
         
-        // Skip vector processing if we're only updating metadata
         if (metadataOnly) {
           continue;
         }
         
-        // Check if movie has reviews for vector processing
         if (!movieData.reviews || !Array.isArray(movieData.reviews) || movieData.reviews.length === 0) {
           console.warn(`Skipping vector processing for ${movieData.movie_name}: No valid reviews found`);
           continue;
         }
         
-        // Process the movie vector if we're updating vectors
         try {
           const movieVector = vectorProcessor.processMovie(movieData);
           
-          // Update just the vector part
           await movieDatabaseService.updateVector(movieData.movie_id, movieVector);
           
           vectorized++;
@@ -149,7 +126,6 @@ async function initializeMovieDatabase() {
       }
     }
     
-    // Get updated statistics
     const newTotalCount = await Movie.countDocuments();
     const newVectorizedCount = await Movie.countDocuments({ vectorProcessed: true });
     
@@ -185,7 +161,6 @@ async function initializeMovieDatabase() {
   }
 }
 
-// Run the initialization script
 initializeMovieDatabase()
   .then(stats => {
     console.log('Database initialization completed successfully');
@@ -196,4 +171,4 @@ initializeMovieDatabase()
     closeDatabase()
       .then(() => process.exit(1))
       .catch(() => process.exit(1));
-  }); 
+  });

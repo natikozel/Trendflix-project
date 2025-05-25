@@ -47,7 +47,7 @@ const PreferenceForm = () => {
 
       const data = await response.json();
       
-      // Check if there's a validation error returned from the LLM
+      // Check if there's a validation error returned from the backend
       if (data.validationError) {
         setErrorMessage(data.errorMessage || 'Please provide more specific information about your movie preferences.');
         setShowErrorPopup(true);

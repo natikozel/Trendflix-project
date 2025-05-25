@@ -14,25 +14,19 @@ class MovieDatabaseService {
     }
   }
 
-  // Store a complete movie (metadata and vector) in the database
   async storeMovie(movieData, vectorData = null) {
     await this.initialize();
 
     try {
-      // Validate inputs
       if (!movieData || !movieData.movie_id) {
         throw new Error('Invalid movie data: missing movie_id');
       }
       
-      // Normalize movie data
       const normalizedData = normalizeMovieData(movieData);
       
-      // Convert to database format
       const dbMovie = convertToDbFormat(normalizedData);
       
-      // Add vector data if provided
       if (vectorData && vectorData.vector && vectorData.dimensions) {
-        // Convert Map to regular object if needed
         if (vectorData.vector instanceof Map) {
           const vectorObj = {};
           for (const [key, value] of vectorData.vector.entries()) {
@@ -47,7 +41,6 @@ class MovieDatabaseService {
         dbMovie.vectorProcessed = true;
       }
       
-      // Update in the database (upsert)
       const result = await Movie.findOneAndUpdate(
         { movieId: dbMovie.movieId },
         dbMovie,
@@ -61,12 +54,10 @@ class MovieDatabaseService {
     }
   }
   
-  // Update just the vector part of a movie
   async updateVector(movieId, vectorData) {
     await this.initialize();
     
     try {
-      // Validate inputs
       if (!movieId) {
         throw new Error('Invalid movieId: missing or empty');
       }
@@ -75,7 +66,6 @@ class MovieDatabaseService {
         throw new Error('Invalid vector data: missing vector or dimensions');
       }
       
-      // Update just the vector fields
       const result = await Movie.findOneAndUpdate(
         { movieId },
         { 
@@ -94,7 +84,6 @@ class MovieDatabaseService {
     }
   }
 
-  // Get a movie from the database
   async getMovie(movieId) {
     await this.initialize();
     
@@ -106,7 +95,6 @@ class MovieDatabaseService {
     }
   }
   
-  // Get all movies (with optional limit and skip)
   async getAllMovies(limit = 100, skip = 0) {
     await this.initialize();
     
@@ -121,12 +109,10 @@ class MovieDatabaseService {
     }
   }
   
-  // Get all vectorized movies without reviews for recommendation
   async getVectorizedMovies(limit = 100, skip = 0) {
     await this.initialize();
     
     try {
-      // Use only inclusion (fields with 1), no exclusions
       return await Movie.find({ vectorProcessed: true })
         .select({
           movieId: 1,
@@ -140,7 +126,6 @@ class MovieDatabaseService {
           posterUrl: 1,
           updatedAt: 1,
           _id: 0
-          // Don't list reviews and dimensions - they'll be excluded by not listing them
         })
         .sort({ updatedAt: -1 })
         .skip(skip)
@@ -151,7 +136,6 @@ class MovieDatabaseService {
     }
   }
   
-  // Get vectorized movies for specific genres
   async getVectorizedMoviesByGenres(genres, limit = 100) {
     await this.initialize();
     
@@ -181,7 +165,6 @@ class MovieDatabaseService {
     }
   }
   
-  // Get movie with only vector data, no metadata (for fast similarity calculations)
   async getMovieVector(movieId) {
     await this.initialize();
     
@@ -198,7 +181,6 @@ class MovieDatabaseService {
     }
   }
   
-  // Get movie metadata without vector or reviews
   async getMovieMetadata(movieId) {
     await this.initialize();
     
@@ -225,7 +207,6 @@ class MovieDatabaseService {
     }
   }
 
-  // Get all movie ids that have vectors
   async getAllMovieIds() {
     await this.initialize();
     
@@ -238,7 +219,6 @@ class MovieDatabaseService {
     }
   }
   
-  // Check if a movie exists in the database
   async movieExists(movieId) {
     await this.initialize();
     
@@ -251,7 +231,6 @@ class MovieDatabaseService {
     }
   }
   
-  // Check if a movie has been vectorized
   async isVectorized(movieId) {
     await this.initialize();
     
@@ -264,7 +243,6 @@ class MovieDatabaseService {
     }
   }
   
-  // Get database stats
   async getStats() {
     await this.initialize();
     
@@ -294,18 +272,15 @@ class MovieDatabaseService {
     }
   }
 
-  // Get all movie vectors as a map for efficient recommendation lookup
   async getMovieVectors(genres = null) {
     await this.initialize();
     
     try {
-      // Build the query based on whether genres are specified
       const query = { vectorProcessed: true };
       if (genres && Array.isArray(genres) && genres.length > 0) {
         query.genres = { $in: genres };
       }
       
-      // Fetch the movies
       const movies = await Movie.find(query)
         .select({
           movieId: 1,
@@ -323,19 +298,15 @@ class MovieDatabaseService {
         })
         .sort({ updatedAt: -1 })
       
-      // Get all movie IDs to fetch genre vectors
       const movieIds = movies.map(movie => movie.movieId);
       
-      // Fetch genre vectors for these movies
       const genreVectors = await GenreVector.find({ movieId: { $in: movieIds } }).lean();
       
-      // Create a map of genre vectors by movieId for quick lookup
       const genreVectorMap = {};
       for (const genreVector of genreVectors) {
         genreVectorMap[genreVector.movieId] = genreVector.genreVector;
       }
       
-      // Convert to a Map with movieId as the key
       const vectorMap = {};
       
       for (const movie of movies) {
@@ -361,7 +332,6 @@ class MovieDatabaseService {
   }
 }
 
-// Create a singleton instance
 const movieDatabaseService = new MovieDatabaseService();
 
-export default movieDatabaseService; 
+export default movieDatabaseService;
