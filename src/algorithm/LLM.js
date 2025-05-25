@@ -2,8 +2,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Use environment variable for API key
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
+let GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_API_KEY) 
+    GEMINI_API_KEY = "AIzaSyB2NeGhgq6LpQRNcd9csyjvnWApyy1_wfw";
 // Initialize the Gemini API client
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 

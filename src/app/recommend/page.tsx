@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import PreferenceForm from '@/components/recommend/PreferenceForm';
 import MovieGrid from '@/components/movies/MovieGrid';
-import LoadingSpinner from '@/components/common/Loading';
+import { BookLoaderComponent } from '@/components/common/BookLoader';
 
 export const metadata = {
   title: 'Get Movie Recommendations | Trendflix',
@@ -44,7 +44,7 @@ export default function RecommendPage() {
             </div>
             <Suspense fallback={
               <div className="flex items-center justify-center h-64">
-                <LoadingSpinner />
+                <BookLoaderComponent />
               </div>
             }>
               <MovieGrid />

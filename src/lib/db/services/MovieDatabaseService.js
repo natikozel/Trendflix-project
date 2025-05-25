@@ -1,7 +1,7 @@
 import { connectToDatabase } from '../mongodb.js';
 import Movie from '../models/Movie.js';
 import { normalizeMovieData, convertToDbFormat } from '../../utils/movieDataProcessor.js';
-
+import GenreVector from '../models/GenreVector.js';
 class MovieDatabaseService {
   constructor() {
     this.initialized = false;
@@ -323,6 +323,18 @@ class MovieDatabaseService {
         })
         .sort({ updatedAt: -1 })
       
+      // Get all movie IDs to fetch genre vectors
+      const movieIds = movies.map(movie => movie.movieId);
+      
+      // Fetch genre vectors for these movies
+      const genreVectors = await GenreVector.find({ movieId: { $in: movieIds } }).lean();
+      
+      // Create a map of genre vectors by movieId for quick lookup
+      const genreVectorMap = {};
+      for (const genreVector of genreVectors) {
+        genreVectorMap[genreVector.movieId] = genreVector.genreVector;
+      }
+      
       // Convert to a Map with movieId as the key
       const vectorMap = {};
       
@@ -336,7 +348,8 @@ class MovieDatabaseService {
           ageRating: movie.ageRating,
           popularity: movie.popularity,
           synopsis: movie.synopsis,
-          posterUrl: movie.posterUrl
+          posterUrl: movie.posterUrl,
+          genreVector: genreVectorMap[movie.movieId] || null
         };
       }
       

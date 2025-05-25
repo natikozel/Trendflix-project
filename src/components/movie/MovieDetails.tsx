@@ -56,9 +56,13 @@ export interface StoredMovie {
 }
 export default function MovieDetailsPage({ movieData }: { movieData: movieProps }) {
 
-  const [localStorageData, setLocalStorageData] = useState<localStorageData>();
+  const [localStorageData, setLocalStorageData] = useState<localStorageData>({
+    matchScore: 0,
+    similarMovies: []
+  });
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -96,6 +100,13 @@ export default function MovieDetailsPage({ movieData }: { movieData: movieProps 
     return <div>Loading...</div>; // You could use a proper loading component here
   }
 
+  // Define the tab data to avoid duplicate key issues
+  const tabItems = [
+    { id: "details", label: "Details" },
+    { id: "reviews", label: "Reviews" },
+    { id: "similar", label: "Similar Match Percentage" }
+  ];
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Back Button - Fixed position */}
@@ -107,17 +118,16 @@ export default function MovieDetailsPage({ movieData }: { movieData: movieProps 
 
       {/* Hero Section */}
       <Suspense fallback={<MovieHeroSkeleton />}>
-        <MovieHero movie={movieData} localStorageData={localStorageData!} />
+        <MovieHero movie={movieData} localStorageData={localStorageData} />
       </Suspense>
 
       {/* Content Tabs */}
       <div className="w-full max-w-7xl mx-auto px-4 py-8 flex-grow">
         <Tabs defaultValue="details" className="w-full">
           <TabsList className="mb-6 w-full justify-start overflow-x-auto flex-nowrap">
-            <TabsTrigger value="details">Details</TabsTrigger>
-            {/* <TabsTrigger value="cast">Cast & Crew</TabsTrigger> */}
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-            <TabsTrigger value="similar">Similar Match Percentage</TabsTrigger>
+            {tabItems.map(tab => (
+              <TabsTrigger key={tab.id} value={tab.id}>{tab.label}</TabsTrigger>
+            ))}
           </TabsList>
 
           <AnimatePresence mode="sync">
@@ -127,13 +137,6 @@ export default function MovieDetailsPage({ movieData }: { movieData: movieProps 
                 <MovieDetailsTab movie={movieData} />
               </Suspense>
             </TabsContent>
-
-            {/* Cast Tab
-            <TabsContent value="cast">
-              <Suspense fallback={<MovieCastTabSkeleton />}>
-                <MovieCastTab cast={movieData.cast} />
-              </Suspense>
-            </TabsContent> */}
 
             {/* Reviews Tab */}
             <TabsContent value="reviews">

@@ -14,7 +14,7 @@ type ProcessedResult = {
 
 export async function POST(request: Request) {
   try {
-    const userInput = await request.json();
+    let userInput = await request.json();
     
     // Process user input which now includes validation
     const processedResult = await recommender.userProcessor.processUserInput(userInput) as ProcessedResult;
@@ -27,6 +27,7 @@ export async function POST(request: Request) {
       });
     }
     
+    userInput.processedData = processedResult;
     // If input is valid, get recommendations
     const recommendations = await recommender.getRecommendations(userInput, {
       maxResults: 6,
