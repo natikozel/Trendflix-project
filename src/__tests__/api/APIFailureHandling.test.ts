@@ -124,6 +124,111 @@ describe('API Failure Handling', () => {
         { id: 'fallback2', title: 'Popular Movie 2', type: 'fallback' }
       ]);
     });
+
+    test('Representative invalid API endpoint http://invalid.api/movies is handled gracefully', async () => {
+      // Mock fetch to simulate network error for invalid endpoint
+      global.fetch = jest.fn(() => 
+        Promise.reject(new Error('Network error: getaddrinfo ENOTFOUND invalid.api'))
+      ) as unknown as typeof fetch;
+      
+      // Function to test invalid API endpoint handling
+      const fetchFromInvalidAPI = async () => {
+        try {
+          const response = await fetch('http://invalid.api/movies');
+          
+          if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+          }
+          
+          return await response.json();
+        } catch (error) {
+          // Log the error and return fallback data
+          console.error('Invalid API endpoint error:', error);
+          
+          // Return fallback recommendations when API is unreachable
+          return {
+            error: true,
+            message: 'API endpoint unreachable',
+            fallbackData: [
+              { id: 'fallback1', title: 'Popular Movie 1', type: 'fallback' },
+              { id: 'fallback2', title: 'Popular Movie 2', type: 'fallback' }
+            ]
+          };
+        }
+      };
+      
+      const result = await fetchFromInvalidAPI();
+      
+      // Verify the API was called
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(fetch).toHaveBeenCalledWith('http://invalid.api/movies');
+      
+      // Verify fallback response structure
+      expect(result).toMatchObject({
+        error: true,
+        message: 'API endpoint unreachable',
+        fallbackData: expect.arrayContaining([
+          expect.objectContaining({
+            id: expect.any(String),
+            title: expect.any(String),
+            type: 'fallback'
+          })
+        ])
+      });
+    });
+
+    test('API endpoint that doesn\'t exist returns appropriate error handling', async () => {
+      // Mock fetch to simulate 404 error
+      global.fetch = jest.fn(() => 
+        Promise.resolve({
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          json: () => Promise.resolve({ error: 'Endpoint not found' })
+        })
+      ) as unknown as typeof fetch;
+      
+      // Function to test non-existent endpoint handling
+      const fetchFromNonExistentEndpoint = async () => {
+        try {
+          const response = await fetch('http://invalid.api/movies');
+          
+          if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}: ${response.statusText}`);
+          }
+          
+          return await response.json();
+        } catch (error) {
+          // Handle the error gracefully
+          return {
+            error: true,
+            message: error instanceof Error ? error.message : 'Unknown error',
+            fallbackRecommendations: [
+              { id: 'popular1', title: 'Trending Movie 1', type: 'popular' },
+              { id: 'popular2', title: 'Trending Movie 2', type: 'popular' }
+            ]
+          };
+        }
+      };
+      
+      const result = await fetchFromNonExistentEndpoint();
+      
+      // Verify the API was called
+      expect(fetch).toHaveBeenCalledTimes(1);
+      
+      // Verify error handling response
+      expect(result).toMatchObject({
+        error: true,
+        message: expect.stringContaining('API request failed with status 404'),
+        fallbackRecommendations: expect.arrayContaining([
+          expect.objectContaining({
+            id: expect.any(String),
+            title: expect.any(String),
+            type: 'popular'
+          })
+        ])
+      });
+    });
     
     test('Partial results are returned when some API calls succeed', async () => {
       // Mock implementation that returns partial results

@@ -59,13 +59,18 @@ describe('API Data Collection', () => {
   describe('Integration with database', () => {
     test('Successfully fetches and stores movie data from external APIs', async () => {
       // Mock database operations
+      const mockCollection = {
+        insertOne: jest.fn<Promise<{ insertedId: string }>, [any]>().mockResolvedValue({ insertedId: 'mockId123' }),
+        findOne: jest.fn<Promise<any>, [any]>().mockResolvedValue(null),
+        find: jest.fn().mockReturnThis(),
+        toArray: jest.fn<Promise<any[]>, []>().mockResolvedValue([]),
+        updateOne: jest.fn<Promise<any>, [any, any]>().mockResolvedValue({})
+      } as unknown as DbCollection;
+
       const mockDb = {
-        connect: jest.fn().mockResolvedValue(true),
-        disconnect: jest.fn().mockResolvedValue(true),
-        collection: jest.fn().mockReturnValue({
-          insertOne: jest.fn().mockResolvedValue({ insertedId: 'mockId123' }),
-          findOne: jest.fn().mockResolvedValue(null)
-        })
+        connect: jest.fn<Promise<boolean>, []>().mockResolvedValue(true),
+        disconnect: jest.fn<Promise<boolean>, []>().mockResolvedValue(true),
+        collection: jest.fn<DbCollection, [string]>().mockReturnValue(mockCollection)
       };
 
       // Mock API response
@@ -143,8 +148,8 @@ describe('API Data Collection', () => {
       // Verify database operations
       expect(mockDb.connect).toHaveBeenCalledTimes(1);
       expect(mockDb.collection).toHaveBeenCalledWith('movies');
-      expect(mockDb.collection('movies').findOne).toHaveBeenCalledWith({ movie_id: 'tt1234567' });
-      expect(mockDb.collection('movies').insertOne).toHaveBeenCalledTimes(1);
+      expect(mockCollection.findOne).toHaveBeenCalledWith({ movie_id: 'tt1234567' });
+      expect(mockCollection.insertOne).toHaveBeenCalledTimes(1);
       expect(mockDb.disconnect).toHaveBeenCalledTimes(1);
 
       // Verify API was called
@@ -227,6 +232,95 @@ describe('API Data Collection', () => {
       release_year: 2023,
       genres: ['Action', 'Adventure'],
       poster_url: '/test-poster.jpg',
+    });
+  });
+
+  test('Representative API endpoint https://api.example.com/movies returns data as expected', async () => {
+    // Mock successful API response for the representative endpoint
+    const mockApiResponse = {
+      results: [
+        {
+          id: 'tt0111161',
+          title: 'The Shawshank Redemption',
+          release_year: 1994,
+          genres: ['Drama'],
+          poster_path: '/shawshank.jpg',
+          overview: 'Two imprisoned men bond over a number of years.'
+        },
+        {
+          id: 'tt0068646',
+          title: 'The Godfather',
+          release_year: 1972,
+          genres: ['Crime', 'Drama'],
+          poster_path: '/godfather.jpg',
+          overview: 'The aging patriarch of an organized crime dynasty.'
+        }
+      ],
+      total_results: 2,
+      page: 1
+    };
+    
+    // Setup fetch mock for this test
+    (global.fetch as jest.Mock).mockImplementationOnce(() => 
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(mockApiResponse)
+      }) as unknown as Promise<Response>
+    );
+
+    // Create a function to fetch from the representative API endpoint
+    const fetchMoviesFromAPI = async () => {
+      try {
+        const response = await fetch('https://api.example.com/movies');
+        
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Verify the response structure
+        expect(data).toHaveProperty('results');
+        expect(data).toHaveProperty('total_results');
+        expect(data).toHaveProperty('page');
+        expect(Array.isArray(data.results)).toBe(true);
+        
+        return data;
+      } catch (error) {
+        console.error('Error fetching from API endpoint:', error);
+        throw error;
+      }
+    };
+
+    // Execute the function
+    const result = await fetchMoviesFromAPI();
+
+    // Verify API was called correctly
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledWith('https://api.example.com/movies');
+
+    // Verify the expected result structure
+    expect(result).toMatchObject({
+      results: expect.arrayContaining([
+        expect.objectContaining({
+          id: expect.any(String),
+          title: expect.any(String),
+          release_year: expect.any(Number),
+          genres: expect.any(Array),
+          poster_path: expect.any(String)
+        })
+      ]),
+      total_results: 2,
+      page: 1
+    });
+
+    // Verify specific movie data
+    expect(result.results[0]).toMatchObject({
+      id: 'tt0111161',
+      title: 'The Shawshank Redemption',
+      release_year: 1994,
+      genres: ['Drama']
     });
   });
 

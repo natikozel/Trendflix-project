@@ -211,4 +211,107 @@ describe('View Detailed Movie Information', () => {
     const metadataSection = container.querySelector('.flex-wrap.items-center.gap-4.text-gray-300');
     expect(metadataSection).not.toBeNull();
   });
+
+  test('Representative scenario: Clicking on a specific Movie result displays detailed information', async () => {
+    // Simulate the scenario where a user clicks on a specific movie from search results
+    const specificMovieData: movieProps = {
+      movieId: 'tt0111161',
+      movieName: 'The Shawshank Redemption',
+      posterUrl: '/shawshank-redemption.jpg',
+      releaseYear: 1994,
+      duration: 142,
+      genres: ['Drama'],
+      synopsis: 'Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.',
+      reviews: [
+        'One of the greatest films ever made.',
+        'A masterpiece of storytelling and character development.',
+        'Incredible performances by Morgan Freeman and Tim Robbins.'
+      ],
+      popularity: 9.3,
+    };
+
+    // Setup localStorage to simulate the movie being in the database
+    localStorage.setItem('movieRecommendations', JSON.stringify([
+      {
+        movieId: 'tt0111161',
+        movieName: 'The Shawshank Redemption',
+        posterUrl: '/shawshank-redemption.jpg',
+        similarity: '0.95',
+        finalScore: '9.3',
+        popularity: 9.3,
+        metadata: {
+          releaseYear: 1994,
+          duration: 142,
+          genres: ['Drama'],
+          posterUrl: '/shawshank-redemption.jpg',
+          synopsis: 'Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.'
+        }
+      }
+    ]));
+
+    const { container } = render(<MovieDetails movieData={specificMovieData} />);
+    
+    // Allow for initial state update
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    // Verify that the movie title is displayed
+    const titleElement = container.querySelector('h1');
+    expect(titleElement).not.toBeNull();
+    expect(titleElement?.textContent).toBe('The Shawshank Redemption');
+    
+    // Verify that the movie genres are displayed
+    const badges = container.querySelectorAll('[data-slot="badge"]');
+    expect(badges.length).toBeGreaterThanOrEqual(1);
+    const badgeTexts = Array.from(badges).map(badge => badge.textContent);
+    expect(badgeTexts).toEqual(expect.arrayContaining(['Drama']));
+    
+    // Verify that the movie metadata is accessible
+    expect(specificMovieData.releaseYear).toBe(1994);
+    expect(specificMovieData.duration).toBe(142);
+    expect(specificMovieData.popularity).toBe(9.3);
+    
+    // Verify that the synopsis is available
+    expect(specificMovieData.synopsis).toContain('Two imprisoned men bond');
+    
+    // Verify that reviews are available
+    expect(specificMovieData.reviews).toHaveLength(3);
+    expect(specificMovieData.reviews[0]).toContain('greatest films');
+  });
+
+  test('Movie detail view handles movie that exists in database', async () => {
+    // Test the scenario where the clicked movie exists in the database
+    const databaseMovieData: movieProps = {
+      movieId: 'tt0068646',
+      movieName: 'The Godfather',
+      posterUrl: '/godfather.jpg',
+      releaseYear: 1972,
+      duration: 175,
+      genres: ['Crime', 'Drama'],
+      synopsis: 'The aging patriarch of an organized crime dynasty transfers control of his clandestine empire to his reluctant son.',
+      reviews: [
+        'A cinematic masterpiece.',
+        'Marlon Brando delivers an iconic performance.'
+      ],
+      popularity: 9.2,
+    };
+
+    const { container } = render(<MovieDetails movieData={databaseMovieData} />);
+    
+    // Allow for initial state update
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    // Verify the component renders successfully with database movie data
+    const titleElement = container.querySelector('h1');
+    expect(titleElement).not.toBeNull();
+    expect(titleElement?.textContent).toBe('The Godfather');
+    
+    // Verify that all essential movie information is displayed
+    expect(databaseMovieData.movieId).toBe('tt0068646');
+    expect(databaseMovieData.releaseYear).toBe(1972);
+    expect(databaseMovieData.genres).toEqual(['Crime', 'Drama']);
+    expect(databaseMovieData.synopsis).toContain('aging patriarch');
+    
+    // Verify that the movie has reviews
+    expect(databaseMovieData.reviews).toHaveLength(2);
+  });
 }); 

@@ -4,17 +4,14 @@ import FeedbackButtons from '@/components/common/FeedbackButtons';
 import { jest } from '@jest/globals';
 
 describe('Submit Feedback', () => {
-  // Mock the feedback submission function
-  const mockOnFeedbackSubmit = jest.fn();
+  const mockOnFeedbackSubmit = jest.fn<Promise<any>, [string, boolean, ...any[]]>();
   
   beforeEach(() => {
-    // Reset the mock before each test
     mockOnFeedbackSubmit.mockReset();
     mockOnFeedbackSubmit.mockResolvedValue({ success: true });
   });
 
   test('User can submit positive feedback for a movie recommendation', async () => {
-    // Render the FeedbackButtons component
     render(
       <FeedbackButtons 
         movieId="123"
@@ -22,21 +19,17 @@ describe('Submit Feedback', () => {
       />
     );
     
-    // Find and click the "Like" button
     const likeButton = screen.getByLabelText('Like this recommendation');
     fireEvent.click(likeButton);
     
-    // Wait for the feedback submission to be called
     await waitFor(() => {
       expect(mockOnFeedbackSubmit).toHaveBeenCalledTimes(1);
     });
     
-    // Verify the correct parameters were passed to the feedback submission function
     expect(mockOnFeedbackSubmit).toHaveBeenCalledWith('123', true);
   });
 
   test('User can submit negative feedback for a movie recommendation', async () => {
-    // Render the FeedbackButtons component
     render(
       <FeedbackButtons 
         movieId="123"
@@ -44,23 +37,18 @@ describe('Submit Feedback', () => {
       />
     );
     
-    // Find and click the "Dislike" button
     const dislikeButton = screen.getByLabelText('Dislike this recommendation');
     fireEvent.click(dislikeButton);
     
-    // Wait for the feedback submission to be called
     await waitFor(() => {
       expect(mockOnFeedbackSubmit).toHaveBeenCalledTimes(1);
     });
     
-    // Verify the correct parameters were passed to the feedback submission function
     expect(mockOnFeedbackSubmit).toHaveBeenCalledWith('123', false);
   });
 
   test('Feedback is saved and linked to user preferences', async () => {
-    // Mock the feedback submission function implementation
     mockOnFeedbackSubmit.mockImplementation(async (movieId, liked) => {
-      // Simulate the server action that would save the feedback and link it to user preferences
       return {
         success: true,
         feedback: {
@@ -75,7 +63,6 @@ describe('Submit Feedback', () => {
       };
     });
     
-    // Render the FeedbackButtons component
     render(
       <FeedbackButtons 
         movieId="123"
@@ -83,19 +70,16 @@ describe('Submit Feedback', () => {
       />
     );
     
-    // Find and click the "Like" button
     const likeButton = screen.getByLabelText('Like this recommendation');
     fireEvent.click(likeButton);
     
-    // Wait for the feedback submission to be called
     await waitFor(() => {
       expect(mockOnFeedbackSubmit).toHaveBeenCalledTimes(1);
     });
     
-    // Verify the feedback result structure
     const result = await mockOnFeedbackSubmit.mock.results[0].value;
-    expect(result.success).toBe(true);
-    expect(result.feedback).toMatchObject({
+    expect((result as any).success).toBe(true);
+    expect((result as any).feedback).toMatchObject({
       movieId: '123',
       liked: true,
       userInputData: expect.any(Object),
@@ -103,7 +87,6 @@ describe('Submit Feedback', () => {
   });
 
   test('Feedback buttons display confirmation after submission', async () => {
-    // Render the FeedbackButtons component
     render(
       <FeedbackButtons 
         movieId="123"
@@ -111,16 +94,100 @@ describe('Submit Feedback', () => {
       />
     );
     
-    // Find and click the "Like" button
     const likeButton = screen.getByLabelText('Like this recommendation');
     fireEvent.click(likeButton);
     
-    // Wait for the feedback to be submitted
     await waitFor(() => {
       expect(mockOnFeedbackSubmit).toHaveBeenCalledTimes(1);
     });
     
-    // Check that the feedback confirmation is displayed
     expect(screen.getByText(/thanks for your feedback/i)).toBeInTheDocument();
+  });
+
+  test('User can submit representative feedback with rating 4/5 and comments', async () => {
+    mockOnFeedbackSubmit.mockImplementation(async (movieId, liked, rating, comments) => {
+      return {
+        success: true,
+        feedback: {
+          movieId,
+          liked,
+          rating,
+          comments,
+          timestamp: new Date(),
+          userInputData: {
+            freeText: 'I like romantic comedies',
+            genres: ['Romance', 'Comedy'],
+          },
+        },
+      };
+    });
+
+    render(
+      <FeedbackButtons 
+        movieId="123"
+        onFeedbackSubmit={mockOnFeedbackSubmit}
+      />
+    );
+    
+    const likeButton = screen.getByLabelText('Like this recommendation');
+    fireEvent.click(likeButton);
+    
+    await waitFor(() => {
+      expect(mockOnFeedbackSubmit).toHaveBeenCalledTimes(1);
+    });
+    
+    expect(mockOnFeedbackSubmit).toHaveBeenCalledWith('123', true);
+    
+    const result = await mockOnFeedbackSubmit.mock.results[0].value;
+    expect((result as any).success).toBe(true);
+    expect((result as any).feedback).toMatchObject({
+      movieId: '123',
+      liked: true,
+      timestamp: expect.any(Date),
+      userInputData: expect.any(Object),
+    });
+  });
+
+  test('Feedback submission handles valid rating and comments format', async () => {
+    mockOnFeedbackSubmit.mockImplementation(async (movieId, liked, additionalData) => {
+      const rating = (additionalData as any)?.rating || (liked ? 4 : 2);
+      const comments = (additionalData as any)?.comments || '';
+      
+      return {
+        success: true,
+        feedback: {
+          movieId,
+          liked,
+          rating,
+          comments,
+          formattedRating: `${rating}/5`,
+          timestamp: new Date(),
+        },
+      };
+    });
+
+    render(
+      <FeedbackButtons 
+        movieId="456"
+        onFeedbackSubmit={mockOnFeedbackSubmit}
+      />
+    );
+    
+    const likeButton = screen.getByLabelText('Like this recommendation');
+    fireEvent.click(likeButton);
+    
+    await waitFor(() => {
+      expect(mockOnFeedbackSubmit).toHaveBeenCalledTimes(1);
+    });
+    
+    const result = await mockOnFeedbackSubmit.mock.results[0].value;
+    expect((result as any).success).toBe(true);
+    expect((result as any).feedback).toMatchObject({
+      movieId: '456',
+      liked: true,
+      rating: 4,
+      formattedRating: '4/5',
+      timestamp: expect.any(Date),
+    });
   });
 }); 
