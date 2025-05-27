@@ -9,14 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 // Components
 import MovieHero from "./MovieHero"
 import MovieDetailsTab from "./MovieDetailsTab"
-// import MovieCastTab from "./MovieCastTab"
 import MovieReviewsTab from "./MovieReviewsTab"
 import SimilarMoviesTab from "./SimilarMoviesTab"
 
 // Skeletons
 import MovieHeroSkeleton from "@/components/movie-hero-skeleton"
 import MovieDetailsTabSkeleton from "@/components/movie-details-tab-skeleton"
-// import MovieCastTabSkeleton from "@/components/movie-cast-tab-skeleton"
 import MovieReviewsTabSkeleton from "@/components/movie-reviews-tab-skeleton"
 import SimilarMoviesTabSkeleton from "@/components/similar-movies-tab-skeleton"
 import { calculateMatchPercentage } from "../ui/MovieScore"
