@@ -16,7 +16,7 @@ import VectorProcessor from './movieReviewsToVector.js';
 import UserInputProcessor from './userInputToVector.js';
 import movieDatabaseService from '../lib/db/services/MovieDatabaseService.js';
 
-class EuclideanDistanceRecommender {
+export class EuclideanDistanceRecommender {
   constructor() {
     this.vectorProcessor = new VectorProcessor();
     this.userProcessor = new UserInputProcessor();

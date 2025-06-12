@@ -74,7 +74,7 @@ const FeedbackButtons = ({ movieId, onFeedbackSubmit }: FeedbackButtonsProps) =>
           animate={{ opacity: 1, y: 0 }}
           className="text-xs text-gray-400"
         >
-          {feedback === 'like' ? 'Thanks for your feedback!' : 'We will improve our recommendations.'}
+          {/* {feedback === 'like' ? 'Thanks for your feedback!' : 'We will improve our recommendations.'} */}
         </motion.span>
       )}
     </div>
