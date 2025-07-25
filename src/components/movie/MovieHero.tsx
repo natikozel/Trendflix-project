@@ -9,12 +9,11 @@ import { Progress } from "@/components/ui/progress"
 import { Check } from "@/components/check"
 import { localStorageData, movieProps } from "./MovieDetails"
 
-// TMDB API configuration
-const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY || "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJhMTA2YzUxZDIzZTlkYjQ4OGI0MDc4YjA0ODIwMzdhZiIsIm5iZiI6MTc0MzI1OTUzOC44ODIsInN1YiI6IjY3ZTgwNzkyNmIzNjdkNDY5NTY3YmZhNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.xs8URWnkdu6teP6FooMttGgpyfF5qgym8wj1kjLBiKU" // Replace with your actual API key
+const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY || "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJhMTA2YzUxZDIzZTlkYjQ4OGI0MDc4YjA0ODIwMzdhZiIsIm5iZiI6MTc0MzI1OTUzOC44ODIsInN1YiI6IjY3ZTgwNzkyNmIzNjdkNDY5NTY3YmZhNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.xs8URWnkdu6teP6FooMttGgpyfF5qgym8wj1kjLBiKU"
 const TMDB_BASE_URL = "https://api.themoviedb.org/3"
 
 type MovieHeroProps = {
-  movie: movieProps // In a real app, you'd use a proper type here
+  movie: movieProps
   localStorageData: localStorageData
 }
 
@@ -33,7 +32,6 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
     setTrailerError(null)
     
     try {
-      // First, search for the movie to get its TMDB ID using name and year
       const query = `${movieName} ${releaseYear}`;
       const searchResponse = await fetch(
         `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(movieName)}&primary_release_year=${releaseYear}`,
@@ -55,10 +53,8 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
         throw new Error(`No results found for movie: ${query}`)
       }
       
-      // Get the first result's ID
       const movieId = searchData.results[0].id
       
-      // Then fetch the videos for this movie
       const videosResponse = await fetch(
         `${TMDB_BASE_URL}/movie/${movieId}/videos`,
         {
@@ -75,7 +71,6 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
       
       const videosData = await videosResponse.json()
       
-      // Find a trailer using the type attribute
       const trailer = videosData.results?.find(
         (video: any) => video.type === "Trailer" && video.site === "YouTube"
       )
@@ -84,7 +79,6 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
         throw new Error("No trailer found for this movie")
       }
       
-      // Use the key attribute for the YouTube video ID
       return `https://www.youtube.com/embed/${trailer.key}?autoplay=1`
     } catch (error) {
       console.error("Error fetching trailer:", error)
@@ -114,7 +108,6 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
     setTrailerError(null)
   }
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -167,7 +160,6 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
 
-        {/* Content Container */}
         <motion.div
           className="absolute bottom-0 left-0 right-0 w-full p-4 sm:p-6 z-10 mx-auto max-w-7xl"
           variants={containerVariants}
@@ -175,7 +167,6 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
           animate="visible"
         >
           <div className="flex flex-col md:flex-row gap-6 items-start">
-            {/* Poster */}
             <motion.div
               className="hidden md:block w-36 lg:w-48 h-auto aspect-[2/3] rounded-lg overflow-hidden shadow-2xl border border-gray-800 flex-shrink-0"
               variants={itemVariants}
@@ -185,7 +176,6 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
               <img src={movie.posterUrl || "/placeholder.svg"} alt={movie.movieName} className="w-full h-full object-cover" />
             </motion.div>
 
-            {/* Movie Info */}
             <div className="flex-1">
               <motion.div className="flex flex-wrap items-center gap-2 mb-2" variants={itemVariants}>
                 {movie.genres.map((genre: string, index: number) => (
@@ -216,7 +206,6 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
                 </div>
               </motion.div>
 
-              {/* Match Score */}
               <motion.div className="mb-4" variants={itemVariants}>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-sm text-gray-400">Match Score</span>
@@ -235,7 +224,6 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
                 {movie.synopsis}
               </motion.p>
 
-              {/* Action Buttons */}
               <motion.div className="flex flex-wrap gap-3" variants={itemVariants}>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button className="bg-purple-600 hover:bg-purple-700" onClick={openTrailer}>
@@ -260,9 +248,6 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
                   </Button>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  {/* <Button variant="outline">
-                    <Share2 className="text-black mr-2 h-4 w-4" /> <span className="text-black">Share</span>
-                  </Button> */}
                 </motion.div>
               </motion.div>
             </div>
@@ -270,7 +255,6 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
         </motion.div>
       </div>
 
-      {/* Trailer Modal */}
       <AnimatePresence>
         {trailerOpen && (
           <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">

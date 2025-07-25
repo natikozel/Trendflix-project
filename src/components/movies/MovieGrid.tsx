@@ -3,13 +3,13 @@
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import MovieCard, { Movie } from './MovieCard';
-import LoadingSpinner from '../common/Loading';
+import { BookLoaderComponent } from '../common/BookLoader';
 
 const MovieGrid = () => {
   const recommendations = useSelector((state: RootState) => state.recommendations.items);
   const isLoading = useSelector((state: RootState) => state.recommendations.isLoading);
   if (isLoading) {
-    return <LoadingSpinner />;
+    return <div className="flex items-center justify-center h-64"><BookLoaderComponent /></div>;
   }
 
   if (!recommendations || recommendations.length === 0) {

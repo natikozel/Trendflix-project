@@ -39,17 +39,12 @@ const MovieCard = ({ movie }: MovieCardProps) => {
   const calculateMatchPercentage = (score: string): number => {
     const scoreValue = parseFloat(score);
     
-    // Convert to a more representative percentage that preserves relative differences
-    // For scores typically in the 0.01-0.20 range, this will create a wider visual spread
-    
-    // First, determine if this is a high or low score based on typical cosine similarity ranges
     if (scoreValue > 0.6) 
       return Math.min(Math.round(35 + (scoreValue * 100 - 10)), 100);
      else if (scoreValue > 0.3)       
       return Math.min(Math.round(25 + (scoreValue * 100)), 100);
      else 
       return Math.min(Math.round(15 + (scoreValue * 100)), 100);
-    
   };
 
   const handleFeedbackSubmit = async (movieId: string, liked: boolean) => {

@@ -71,9 +71,8 @@ You will be given a collection of user reviews for a movie. Your job is to analy
 INSTRUCTIONS:
 1. Read all the provided user reviews carefully.
 2. Based on these reviews, create a vector of 21 attributes (numbered 0-20) that characterizes the movie.
-3. Each attribute should have a value between 0 and 1.
-4. The sum of all attribute values must equal exactly 1.0.
-5. Allocate higher values to attributes that are more prominent or frequently mentioned in the reviews.
+3. Each attribute should have a value between 0 and 1 and it's completely independent from the others.
+4. Allocate higher values to attributes that are more prominent or frequently mentioned in the reviews.
 
 ATTRIBUTES TO ANALYZE:
 0. Action: From no action (0) to high-intensity action (1)
@@ -103,31 +102,30 @@ IMPORTANT: Do not use any special characters, dots, or spaces in the attribute n
 OUTPUT FORMAT:
 Provide your analysis as a JSON object where keys are the attribute names (0-20) and values are decimal numbers between 0 and 1.
 There can't be two vector values that are the same. The numbers must be diversed so that the reader can understand which attribute is superior to others.
-The sum of all values must equal exactly 1.0 and should be sorted (By the values) Descendingly.
 
 Example output format:
 {
-  "SciFiFantasy": 0.15,
-  "Action": 0.12,
-  "VisualEffects": 0.10,
-  "Pace": 0.07,
-  "ThrillerSuspense": 0.08,
-  "EmotionalDepth": 0.06,
-  "DialogueComplexity": 0.04,
-  "DialogueVsAction": 0.04,
-  "StoryDarkness": 0.05,
-  "Romance": 0.05,
-  "Violence": 0.04,
-  "CinematicScore": 0.03,
-  "Realism": 0.03,
-  "TwistFactor": 0.03,
-  "Comedy": 0.03,
-  "CognitiveLoad": 0.02,
-  "HumorType": 0.02,
-  "FamilyFriendliness": 0.02,
-  "PoliticalSocial": 0.01,
-  "Horror": 0.01,
-  "MovieLength": 0.01
+  "SciFiFantasy": 0.8,
+  "Action": 0.4,
+  "VisualEffects": 0.9,
+  "Pace": 0.6,
+  "ThrillerSuspense": 0.7,
+  "EmotionalDepth": 0.3,
+  "DialogueComplexity": 0.2,
+  "DialogueVsAction": 0.1,
+  "StoryDarkness": 0.5,
+  "Romance": 0.8,
+  "Violence": 0.6,
+  "CinematicScore": 0.9,
+  "Realism": 0.4,
+  "TwistFactor": 0.7,
+  "Comedy": 0.3,
+  "CognitiveLoad": 0.5,
+  "HumorType": 0.2,
+  "FamilyFriendliness": 0.8,
+  "PoliticalSocial": 0.6,
+  "Horror": 0.4,
+  "MovieLength": 0.9
 }
 Here are the reviews to analyze:
 {REVIEWS}
@@ -290,8 +288,19 @@ export async function processAllMovies() {
     for (const file of files) {
       try {
         const movieId = file.replace('_reviews.json', '');
+        const movieData = loadMovieReviews(movieId);
+        if (!movieData) {
+          console.error(`Could not load review data for file: ${file}`);
+          continue;
+        }
+        console.log(`Checking movie: ${movieData.movie_id}`);
+        const existingVector = await GenreVector.findOne({ movieId: movieData.movie_id });
+        if (existingVector) {
+          console.log(`Skipping movie ${movieId}: Genre vector already exists in the database`);
+          results.push(existingVector.toObject());
+          continue;
+        }      
         console.log(`Processing movie: ${movieId}`);
-        
         const vector = await getGenreVector(movieId);
         console.log(vector);
         if (vector) {

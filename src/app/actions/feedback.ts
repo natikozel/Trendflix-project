@@ -2,7 +2,6 @@
 
 import feedbackService from '@/lib/db/services/FeedbackService';
 
-// Define types for our application
 interface UserInput {
   genres?: string[];
   age?: number;
@@ -28,16 +27,10 @@ interface Feedback {
   updatedAt?: Date;
 }
 
-/**
- * Helper function to safely serialize data to plain objects
- */
 function safeSerialize(data: any): any {
   return JSON.parse(JSON.stringify(data));
 }
 
-/**
- * Server action to save user feedback about a movie recommendation
- */
 export async function saveFeedback(
   movieId: string,
   liked: boolean,
@@ -45,7 +38,6 @@ export async function saveFeedback(
   recommendationScore?: string
 ): Promise<{ success: boolean; feedback?: Feedback; error?: string }> {
   try {
-    // Validate required fields
     if (!movieId || liked === undefined || !userInputData) {
       return {
         success: false,
@@ -53,10 +45,8 @@ export async function saveFeedback(
       };
     }
     
-    // Convert string score to number if provided
     const scoreValue = recommendationScore ? parseFloat(recommendationScore) : undefined;
     
-    // Save the feedback
     const feedbackData = await feedbackService.saveFeedback(
       movieId,
       liked,
@@ -64,7 +54,6 @@ export async function saveFeedback(
       scoreValue
     );
     
-    // Ensure we are returning plain objects
     const feedback = safeSerialize(feedbackData);
     
     return { success: true, feedback };
@@ -77,9 +66,6 @@ export async function saveFeedback(
   }
 }
 
-/**
- * Server action to get all feedback data (for admin dashboards)
- */
 export async function getAllFeedback(): Promise<Feedback[]> {
   try {
     const feedbackData = await feedbackService.getAllFeedback();
@@ -90,9 +76,6 @@ export async function getAllFeedback(): Promise<Feedback[]> {
   }
 }
 
-/**
- * Server action to get feedback for a specific movie
- */
 export async function getFeedbackByMovie(movieId: string): Promise<Feedback[]> {
   try {
     const feedbackData = await feedbackService.getFeedbackByMovieId(movieId);
@@ -103,9 +86,6 @@ export async function getFeedbackByMovie(movieId: string): Promise<Feedback[]> {
   }
 }
 
-/**
- * Server action to get aggregated feedback data
- */
 export async function getAggregatedFeedback(): Promise<any[]> {
   try {
     const aggregatedData = await feedbackService.getAggregatedFeedback();
@@ -114,4 +94,4 @@ export async function getAggregatedFeedback(): Promise<any[]> {
     console.error('Error retrieving aggregated feedback:', error);
     return [];
   }
-} 
+}

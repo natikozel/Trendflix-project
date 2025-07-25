@@ -2,16 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import { normalizeMovieData } from './movieDataProcessor.js';
 
-/**
- * Load movie data from JSON files in a directory
- */
 export function loadMovieDataFromDirectory(directoryPath) {
   try {
-    // Get all JSON files in the directory
     const files = fs.readdirSync(directoryPath).filter(file => file.endsWith('.json'));
     console.log(`Found ${files.length} JSON files in ${directoryPath}`);
     
-    // Process each file
     const movies = [];
     
     for (const file of files) {
@@ -20,7 +15,6 @@ export function loadMovieDataFromDirectory(directoryPath) {
         const fileContent = fs.readFileSync(filePath, 'utf8');
         const movieData = JSON.parse(fileContent);
         
-        // Normalize the data
         const normalizedData = normalizeMovieData(movieData, file);
         
         movies.push({
@@ -38,4 +32,4 @@ export function loadMovieDataFromDirectory(directoryPath) {
     console.error(`Error loading movie data from directory ${directoryPath}:`, error);
     return [];
   }
-} 
+}

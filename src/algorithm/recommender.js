@@ -51,13 +51,15 @@ class Recommender {
    * @returns {number} - Similarity score between 0 and 1 (0 = no similarity, 1 = identical)
    */
   calculateCosineSimilarity(vectorA, vectorB) {
-    // Safety check for inputs
+    const startTime = performance.now();
+    
     if (!vectorA || !vectorB) {
       return 0;
     }
 
     try {
-      // Determine what type of vectors we're dealing with
+      // Phase 1: Type checking and setup
+      const phase1Start = performance.now();
       const isMapA = vectorA instanceof Map;
       const isMapB = vectorB instanceof Map;
       
@@ -75,22 +77,32 @@ class Recommender {
       
       // Add keys from vectorA
       if (isMapA) {
-        for (const key of vectorA.keys()) {
-          dimensions.add(key);
-        }
+        dimensions = new Set(vectorA.keys());
+        getValueA = (key) => vectorA.get(key) || 0;
       } else {
-        Object.keys(vectorA).forEach(key => dimensions.add(key));
+        dimensions = new Set(Object.keys(vectorA));
+        getValueA = (key) => vectorA[key] || 0;
       }
-      
-      // Add keys from vectorB
+
       if (isMapB) {
-        for (const key of vectorB.keys()) {
-          dimensions.add(key);
+        if (isMapA) {
+          // Both are Maps - add B's keys to existing set
+          for (const key of vectorB.keys()) {
+            dimensions.add(key);
+          }
+        } else {
+          // A is Object, B is Map - merge keys
+          for (const key of vectorB.keys()) {
+            dimensions.add(key);
+          }
         }
+        getValueB = (key) => vectorB.get(key) || 0;
       } else {
+        // B is Object
         Object.keys(vectorB).forEach(key => dimensions.add(key));
+        getValueB = (key) => vectorB[key] || 0;
       }
-      
+
       if (dimensions.size === 0) {
         return 0;
       }
@@ -100,37 +112,49 @@ class Recommender {
       let magnitudeA = 0;
       let magnitudeB = 0;
 
-      dimensions.forEach(dim => {
-        const a = getValue(vectorA, isMapA, dim);
-        const b = getValue(vectorB, isMapB, dim);
-        
-        // Check for valid numbers
-        if (isNaN(a) || isNaN(b)) {
-          return; // Skip this dimension
-        }
-        
-        dotProduct += a * b;
-        magnitudeA += a * a;
-        magnitudeB += b * b;
-      });
+      // Use optimized access functions
+      for (const dim of dimensions) {
+        const a = getValueA(dim);
+        const b = getValueB(dim);
 
-      // Calculate magnitudes, with safety checks
+        if (!isNaN(a) && !isNaN(b)) {
+          dotProduct += a * b;
+          magnitudeA += a * a;
+          magnitudeB += b * b;
+        }
+      }
+      const phase4Start = performance.now();
+
       magnitudeA = Math.sqrt(Math.max(0, magnitudeA));
       magnitudeB = Math.sqrt(Math.max(0, magnitudeB));
-      
-      // Return cosine similarity with safety checks
+
       if (magnitudeA === 0 || magnitudeB === 0) {
-        return 0; // Avoid division by zero
+        return 0;
       }
-      
+
       const similarity = dotProduct / (magnitudeA * magnitudeB);
-      
-      // Final safety check for NaN result
+
       if (isNaN(similarity)) {
         return 0;
       }
+      const phase3End = performance.now();
+
+      const phase4End = performance.now();
+
+      const totalTime = performance.now() - startTime;
       
-      return similarity;
+      // Log timing information (you can remove this after debugging)
+      // if (totalTime > 1) { // Only log if it takes more than 1ms
+        console.log(`Cosine Similarity Timing Breakdown:
+          Phase 1 (Setup): ${(phase1End - phase1Start).toFixed(3)}ms
+          Phase 2 (Dimensions): ${(phase2End - phase2Start).toFixed(3)}ms  
+          Phase 3 (Calculation): ${(phase3End - phase3Start).toFixed(3)}ms
+          Phase 4 (Final): ${(phase4End - phase4Start).toFixed(3)}ms
+          Total: ${totalTime.toFixed(3)}ms
+          Dimensions count: ${dimensions.size}`);
+      // }
+
+      return isNaN(similarity) ? 0 : similarity;
     } catch (err) {
       console.error('Error calculating similarity:', err);
       return 0;
@@ -163,8 +187,7 @@ class Recommender {
     // This leverages LLM-extracted movie titles from user text input
     if (movie?.movieName && userPreferences?.movieTitles && Array.isArray(userPreferences.movieTitles)) {
       const movieTitle = movie.movieName.toLowerCase();
-      
-      // Check each movie title identified by the LLM
+
       for (const title of userPreferences.movieTitles) {
         const titleLower = title.toLowerCase();
         
@@ -226,25 +249,22 @@ class Recommender {
 
     // Genre exclusion: Hard filter for disliked genres
     if (userPreferences?.excludedGenres && userPreferences.excludedGenres.length > 0 && movie?.genres) {
-      // Check if any movie genre is in the excluded list
-      const hasExcludedGenre = movie.genres.some(genre => 
+      const hasExcludedGenre = movie.genres.some(genre =>
         userPreferences.excludedGenres.includes(genre)
       );
-      
+
       if (hasExcludedGenre) {
-        return 0; // Completely exclude this movie from recommendations
+        return 0;
       }
     }
 
     // Genre preference: Boost movies with preferred genres
     if (userPreferences?.preferredGenres && userPreferences?.preferredGenres?.length > 0 && movie?.genres) {
-      // Count how many preferred genres match
-      const matchingGenres = movie.genres.filter(genre => 
+      const matchingGenres = movie.genres.filter(genre =>
         userPreferences.preferredGenres.includes(genre)
       ).length;
-      
+
       if (matchingGenres > 0) {
-        // Boost based on proportion of matching genres
         const genreBoost = 1 + (matchingGenres / userPreferences.preferredGenres.length) * 0.3;
         weightedScore *= genreBoost;
       }
@@ -252,32 +272,26 @@ class Recommender {
 
     // Year range preference: Prefer movies within specified year range
     if (userPreferences?.yearRange?.minYear && userPreferences?.yearRange?.maxYear && movie?.releaseYear) {
-      // First check if the movie is within the range
-      const isInRange = movie.releaseYear >= userPreferences.yearRange.minYear && 
-                        movie.releaseYear <= userPreferences.yearRange.maxYear;
-      
+      const isInRange = movie.releaseYear >= userPreferences.yearRange.minYear &&
+        movie.releaseYear <= userPreferences.yearRange.maxYear;
+
       if (isInRange) {
-        // Calculate how well the movie's year fits in the range (closer to middle = better)
         const rangeSize = userPreferences.yearRange.maxYear - userPreferences.yearRange.minYear;
         const midPoint = (userPreferences.yearRange.minYear + userPreferences.yearRange.maxYear) / 2;
         const distanceFromMidpoint = Math.abs(movie.releaseYear - midPoint);
-        
-        // Normalize distance from midpoint (0 = at midpoint, 1 = at edge of range)
+
         const normalizedDistance = distanceFromMidpoint / (rangeSize / 2);
-        
-        // Calculate boost (max boost at midpoint, decreasing toward edges)
+
         const yearBoost = 1 + (1 - normalizedDistance) * 0.7;
         weightedScore *= yearBoost;
       } else {
-        // Movie is outside the range - apply a penalty based on how far outside
         const distanceOutsideRange = Math.min(
           Math.abs(movie.releaseYear - userPreferences.yearRange.minYear),
           Math.abs(movie.releaseYear - userPreferences.yearRange.maxYear)
         );
-        
-        // Stronger penalty for movies further outside the range
+
         const penaltyFactor = Math.max(0.5, 1 - (distanceOutsideRange / 10) * 0.5);
-        
+
         weightedScore *= penaltyFactor;
       }
     }
@@ -287,18 +301,16 @@ class Recommender {
       const ageRatingOrder = ['G', 'PG', 'PG-13', 'R', 'NC-17'];
       const movieAgeRatingIndex = ageRatingOrder.indexOf(movie.ageRating);
       const userAge = parseInt(userPreferences.age);
-      
-      // Map user age to appropriate rating
+
       let maxAllowedRatingIndex;
       if (userAge < 13) {
-        maxAllowedRatingIndex = 1; // Up to PG
+        maxAllowedRatingIndex = 1;
       } else if (userAge < 17) {
-        maxAllowedRatingIndex = 2; // Up to PG-13
+        maxAllowedRatingIndex = 2;
       } else {
-        maxAllowedRatingIndex = 4; // All ratings allowed
+        maxAllowedRatingIndex = 4;
       }
-      
-      // If movie rating is higher than allowed for user's age, set score to 0
+
       if (movieAgeRatingIndex > maxAllowedRatingIndex) {
         weightedScore = 0;
       }
@@ -328,7 +340,9 @@ class Recommender {
    * @returns {Promise<Array>} - Array of recommended movies with scores
    */
   async getRecommendations(userInputData, options = {}) {
-    try {      
+    const overallStartTime = performance.now();
+    
+    try {
       const {
         maxResults = 6,
         similarityThreshold = 0.03,
@@ -337,7 +351,6 @@ class Recommender {
         useFeedbackData = true
       } = options;
 
-      // Process user input into vector
       let userVector;
       let userPreferences;
       
@@ -370,19 +383,30 @@ class Recommender {
       if (userInputData?.gender) {
         userPreferences.gender = userInputData.gender;
       }
+      const preferencesSetupEnd = performance.now();
 
-      // Initialize the database connection
+      // Timing: Database Initialization
+      const dbInitStart = performance.now();
       await movieDatabaseService.initialize();
-      
-      // Get vectorized movies from the database
+      const dbInitEnd = performance.now();
+
+      // Timing: Movie Vectors Retrieval
+      const movieVectorsStart = performance.now();
       const hasGenrePreferences = preferredGenres && preferredGenres.length > 0;
-      
       const movieVectors = await movieDatabaseService.getMovieVectors(
         hasGenrePreferences ? preferredGenres : null
       );
       
       // Calculate similarity scores for all movies
       const results = [];
+      
+      // Timing variables for loop internals
+      let totalSimilarityTime = 0;
+      let totalGenreComparisonTime = 0;
+      let totalMetadataWeightsTime = 0;
+      let totalFeedbackTime = 0;
+      let processedMovieCount = 0;
+
       for (const [movieId, movieData] of Object.entries(movieVectors)) {
         if (!movieData.vector) continue;
         
@@ -412,11 +436,9 @@ class Recommender {
           const result = {
             movieId,
             movieName: movieData.movieName || 'Unknown Movie',
-            similarity: similarity.toFixed(4),
             finalScore: weightedScore.toFixed(4)
           };
-          
-          // Add metadata if requested
+
           if (includeMetadata) {
             result.metadata = {
               releaseYear: movieData.releaseYear,
@@ -426,22 +448,76 @@ class Recommender {
               genres: movieData.genres
             };
           }
-          
+
           results.push(result);
         }
+        
+        processedMovieCount++;
       }
-      
-      // Sort by final weighted score (descending)
+      const mainLoopEnd = performance.now();
+
+      // Timing: Final Sorting and Slicing
+      const sortingStart = performance.now();
       results.sort((a, b) => parseFloat(b.finalScore) - parseFloat(a.finalScore));
-      
-      // Take top N results
-      return results.slice(0, maxResults);
-      
+      const finalResults = results.slice(0, maxResults);
+      const sortingEnd = performance.now();
+
+      const overallEndTime = performance.now();
+
+      // Comprehensive Timing Report
+      console.log(`
+🔍 RECOMMENDATION PERFORMANCE BREAKDOWN:
+=====================================
+📊 Overall Stats:
+   • Total Time: ${(overallEndTime - overallStartTime).toFixed(2)}ms
+   • Movies Processed: ${processedMovieCount}
+   • Results Found: ${results.length}
+   • Final Results: ${finalResults.length}
+
+⏱️  Phase Breakdown:
+   1. User Input Processing: ${(userProcessingEnd - userProcessingStart).toFixed(2)}ms
+   2. Preference Vector Generation: ${(preferenceVectorEnd - preferenceVectorStart).toFixed(2)}ms  
+   3. Preferences Setup: ${(preferencesSetupEnd - preferencesSetupStart).toFixed(2)}ms
+   4. Database Initialization: ${(dbInitEnd - dbInitStart).toFixed(2)}ms
+   5. Movie Vectors Retrieval: ${(movieVectorsEnd - movieVectorsStart).toFixed(2)}ms
+   6. Main Processing Loop: ${(mainLoopEnd - mainLoopStart).toFixed(2)}ms
+   7. Final Sorting: ${(sortingEnd - sortingStart).toFixed(2)}ms
+
+🔄 Loop Internals (Total for ${processedMovieCount} movies):
+   • Cosine Similarity: ${totalSimilarityTime.toFixed(2)}ms (avg: ${(totalSimilarityTime/processedMovieCount).toFixed(3)}ms per movie)
+   • Genre Comparison: ${totalGenreComparisonTime.toFixed(2)}ms (avg: ${(totalGenreComparisonTime/processedMovieCount).toFixed(3)}ms per movie)
+   • Metadata Weights: ${totalMetadataWeightsTime.toFixed(2)}ms (avg: ${(totalMetadataWeightsTime/processedMovieCount).toFixed(3)}ms per movie)
+   • Feedback Adjustment: ${totalFeedbackTime.toFixed(2)}ms (avg: ${(totalFeedbackTime/processedMovieCount).toFixed(3)}ms per movie)
+
+📈 Performance Insights:
+   • Loop Processing Rate: ${(processedMovieCount / (mainLoopEnd - mainLoopStart) * 1000).toFixed(0)} movies/second
+   • Biggest Bottleneck: ${this.identifyBottleneck({
+     userProcessing: userProcessingEnd - userProcessingStart,
+     preferenceVector: preferenceVectorEnd - preferenceVectorStart,
+     dbInit: dbInitEnd - dbInitStart,
+     movieVectors: movieVectorsEnd - movieVectorsStart,
+     mainLoop: mainLoopEnd - mainLoopStart,
+     sorting: sortingEnd - sortingStart
+   })}
+`);
+
+      return finalResults;
+
     } catch (error) {
-      console.error("Error in recommendation process:", error);
+      const overallEndTime = performance.now();
+      console.error(`Error in recommendation process (${(overallEndTime - overallStartTime).toFixed(2)}ms):`, error);
       throw error;
     }
   }
+
+  // Helper method to identify the biggest bottleneck
+  identifyBottleneck(timings) {
+    const phases = Object.entries(timings);
+    const slowest = phases.reduce((max, current) => 
+      current[1] > max[1] ? current : max
+    );
+    return `${slowest[0]} (${slowest[1].toFixed(2)}ms)`;
+  }
 }
 
-export default Recommender; 
+export default Recommender;
