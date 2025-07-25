@@ -316,4 +316,4 @@ const recommendations = await recommender.getRecommendations(userInput, {
 
 ---
 
-**Note**: This documentation is maintained by the Trendflix development team. For questions or contributions, please refer to the main project README. 
+**Note**: This documentation is maintained by the Trendflix development team. For questions or contributions, please refer to the main project README.

@@ -105,6 +105,7 @@ class UserInputProcessor {
   customTokenize(text) {
     if (!text || typeof text !== 'string') return [];
     
+    // First, temporarily replace hyphens in known compound words with a special marker
     const preserveHyphenWords = ['sci-fi'];
     let processedText = text.toLowerCase();
     
@@ -113,10 +114,12 @@ class UserInputProcessor {
       processedText = processedText.replace(regex, word.replace('-', '_HYPHEN_'));
     });
 
+    // Remove punctuation except our special marker
     processedText = processedText
       .replace(/[^\w\s_HYPHEN_]/g, '')
       .replace(/_HYPHEN_/g, '-');
 
+    // Split into tokens and filter stopwords
     return processedText
       .split(/\s+/)
       .filter(token => token.length > 0)
@@ -142,18 +145,22 @@ class UserInputProcessor {
       word.length >= 2
     );
     
+    // Process keywords and their related concepts
     const processedKeywords = new Map();
     
     keywords.forEach(word => {
+      // Add the original word with its weight
       const baseWeight = this.importantTerms.has(word) ? 1.5 : 1.0;
       processedKeywords.set(word, baseWeight);
       
       // Add related concept terms through semantic mapping
       Object.entries(this.conceptMappings).forEach(([concept, related]) => {
         if (related.includes(word)) {
+          // Add the concept with a reduced weight
           const conceptWeight = (processedKeywords.get(concept) || 0) + (baseWeight * 0.5);
           processedKeywords.set(concept, conceptWeight);
           
+          // Add other related terms with further reduced weights
           related.forEach(relatedTerm => {
             if (relatedTerm !== word) {
               const relatedWeight = (processedKeywords.get(relatedTerm) || 0) + (baseWeight * 0.3);
@@ -295,31 +302,36 @@ class UserInputProcessor {
         User input: "${freeText}"
       `;
 
-      const analysisResponse = await generateGeminiResponse(textAnalysisPrompt);
+      // Get processed input from LLM
+      const llmResponse = await generateGeminiResponse(llmPrompt);
       
-      console.log("Analysis Response:", JSON.stringify(analysisResponse, null, 2));
+      // Log the response for debugging
+      console.log("LLM Processed Input:", JSON.stringify(llmResponse, null, 2));
       
-      if (analysisResponse?.validationError === true) {
+      // Check if the input validation failed
+      if (llmResponse?.validationError === true) {
         return {
           validationError: true,
-          errorMessage: analysisResponse.errorMessage || "Please provide more specific information about your movie preferences."
+          errorMessage: llmResponse.errorMessage || "Please provide more specific information about your movie preferences."
         };
       }
       
+      // Extract the processed structure from the LLM response with defaults
       const processedData = {
         processedInput: {
-          keywords: Array.isArray(analysisResponse?.processedInput?.keywords) ? analysisResponse.processedInput.keywords : [],
-          genres: Array.isArray(analysisResponse?.processedInput?.genres) ? analysisResponse.processedInput.genres : [],
+          keywords: Array.isArray(llmResponse?.processedInput?.keywords) ? llmResponse.processedInput.keywords : [],
+          genres: Array.isArray(llmResponse?.processedInput?.genres) ? llmResponse.processedInput.genres : [],
           moodScores: {
-            positive: Number(analysisResponse?.processedInput?.moodScores?.positive) || 0,
-            negative: Number(analysisResponse?.processedInput?.moodScores?.negative) || 0,
-            neutral: Number(analysisResponse?.processedInput?.moodScores?.neutral) || 0
+            positive: Number(llmResponse?.processedInput?.moodScores?.positive) || 0,
+            negative: Number(llmResponse?.processedInput?.moodScores?.negative) || 0,
+            neutral: Number(llmResponse?.processedInput?.moodScores?.neutral) || 0
           },
-          movieTitles: Array.isArray(analysisResponse?.processedInput?.movieTitles) ? analysisResponse.processedInput.movieTitles : [],
-          timeConstraint: Number(analysisResponse?.processedInput?.timeConstraint) || null
+          movieTitles: Array.isArray(llmResponse?.processedInput?.movieTitles) ? llmResponse.processedInput.movieTitles : [],
+          timeConstraint: Number(llmResponse?.processedInput?.timeConstraint) || null
         }
       };
       
+      // Create vector representation from the processed data
       const vector = {};
       
       // Add movie titles as high-weight keywords (strongest signal)
@@ -327,9 +339,10 @@ class UserInputProcessor {
         processedData.processedInput.movieTitles.forEach(title => {
           vector[`title_${title.toLowerCase().replace(/\s+/g, '_')}`] = 2.0;
           
+          // Also add individual words from movie titles to improve matching
           const titleWords = title.toLowerCase().split(/\s+/);
           titleWords.forEach(word => {
-            if (word.length > 3) {
+            if (word.length > 3) { // Only add significant words
               vector[word] = (vector[word] || 0) + 1.0;
             }
           });
@@ -348,6 +361,7 @@ class UserInputProcessor {
               vector[concept] = (vector[concept] || 0) + 
                 (this.weights.keywords * 0.6) / Math.sqrt(processedData.processedInput.keywords.length);
               
+              // Add other related terms with further reduced weights
               related.forEach(relatedTerm => {
                 if (relatedTerm !== keyword) {
                   vector[relatedTerm] = (vector[relatedTerm] || 0) + 
@@ -361,6 +375,7 @@ class UserInputProcessor {
       
       // Add genre weights (combine LLM-extracted and user-provided genres)
       if (processedData.processedInput.genres.length > 0) {
+        // Combine LLM genres with user-provided genres
         const allGenres = [...new Set([
           ...processedData.processedInput.genres,
           ...(Array.isArray(genres) ? genres : [])
@@ -369,6 +384,7 @@ class UserInputProcessor {
         allGenres.forEach(genre => {
           vector[genre] = (this.weights.genres * 1.2) / Math.sqrt(allGenres.length);
           
+          // Add related concept terms for genres
           Object.entries(this.conceptMappings).forEach(([concept, related]) => {
             if (related.includes(genre)) {
               vector[concept] = (vector[concept] || 0) +
@@ -393,7 +409,7 @@ class UserInputProcessor {
       // Add demographic and preference information as additional features
       if (age) vector['age'] = age / 100; // Normalize age to 0-1 range
       if (gender) vector[`gender_${gender}`] = 0.5;
-      if (preferredDuration) vector['preferredDuration'] = preferredDuration / 200;
+      if (preferredDuration) vector['preferredDuration'] = preferredDuration / 200; // Normalize duration
       if (preferNewReleases) vector['newReleases'] = 0.5;
       if (preferredLanguage) vector[`language_${preferredLanguage.toLowerCase()}`] = 0.5;
       
@@ -401,7 +417,7 @@ class UserInputProcessor {
       if (additionalParams && typeof additionalParams === 'object') {
         Object.entries(additionalParams).forEach(([key, value]) => {
           if (typeof value === 'number') {
-            vector[key] = value / 10;
+            vector[key] = value / 10; // Normalize numeric values
           } else if (typeof value === 'boolean' && value) {
             vector[key] = 0.5;
           } else if (typeof value === 'string') {
@@ -419,6 +435,7 @@ class UserInputProcessor {
         vector[term] = vector[term] / magnitude;
       });
       
+      // Combine processed data with the user's original input
       const result = {
         processedInput: {
           ...processedData.processedInput,

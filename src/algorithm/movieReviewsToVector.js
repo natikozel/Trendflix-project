@@ -109,6 +109,8 @@ class VectorProcessor {
     const tokens = processedText
       .split(/\s+/)
       .filter(word => !this.stopwords.has(word) && word.length > 2);
+    
+    // console.log(`Preprocessed to ${tokens.length} tokens`);
 
     // Join back into a string for TF-IDF processing
     return tokens.join(' ');
@@ -132,6 +134,7 @@ class VectorProcessor {
    * @returns {Object} - Vector representation with dimensions and weights
    */
   processReviews(reviews) {
+    
     if (!reviews || reviews.length === 0) {
       console.error("No reviews found to process");
       // Return a minimal valid vector to prevent errors downstream
@@ -154,6 +157,7 @@ class VectorProcessor {
       try {
         const processedText = this.preprocessText(review.text);
         this.tfidf.addDocument(processedText);
+        // console.log(`Added review ${index+1}/${reviews.length} (${processedText.length} characters)`);
       } catch (error) {
         console.error(`Error processing review ${index}:`, error.message);
       }
@@ -214,7 +218,6 @@ class VectorProcessor {
     const magnitude = Math.sqrt(
       Object.values(vector).reduce((sum, weight) => sum + weight * weight, 0) || 1
     );
-    
     
     Object.keys(vector).forEach(term => {
       vector[term] = vector[term] / magnitude;

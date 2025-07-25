@@ -26,10 +26,10 @@
 // Gemini API Integration
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-let GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-if (!GEMINI_API_KEY) 
-    GEMINI_API_KEY = "AIzaSyB2NeGhgq6LpQRNcd9csyjvnWApyy1_wfw";
+// Use environment variable for API key
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+// Initialize the Gemini API client
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 /**
@@ -44,7 +44,11 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 function cleanResponseText(text) {
     // Remove markdown code blocks (```json and ```)
     text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    
+    // Remove any leading/trailing whitespace
     text = text.trim();
+    
+    // If the text starts with multiple newlines, remove them
     text = text.replace(/^\n+/, '');
     
     return text;
@@ -68,7 +72,7 @@ function cleanResponseText(text) {
 export async function generateGeminiResponse(prompt) {
     try {
         // Get the Gemini Pro model (using the latest available version)
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-04-17' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         // Generate content using the provided prompt
         const result = await model.generateContent(prompt);
@@ -76,7 +80,10 @@ export async function generateGeminiResponse(prompt) {
         const textResponse = response.text();
 
         try {
+            // Clean the response text before parsing
             const cleanedResponse = cleanResponseText(textResponse);
+            
+            // Attempt to parse the response as JSON
             const jsonResponse = JSON.parse(cleanedResponse);
             return jsonResponse;
         } catch (parseError) {

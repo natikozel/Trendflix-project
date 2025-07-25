@@ -72,7 +72,7 @@ class FeedbackUtils {
       const movieFeedback = await feedbackService.getFeedbackByMovieId(movieId);
       
       if (!movieFeedback || movieFeedback.length === 0) {
-        return currentScore;
+        return currentScore; // No feedback yet, return original score
       }
       
       let adjustedScore = currentScore;
@@ -108,7 +108,7 @@ class FeedbackUtils {
       return adjustedScore;
     } catch (error) {
       console.error('Error adjusting score based on feedback:', error);
-      return currentScore;
+      return currentScore; // Return original score if there's an error
     }
   }
   
@@ -149,8 +149,9 @@ class FeedbackUtils {
     
     // Compare age groups with linear decay
     if (userA.age && userB.age) {
+      // Age similarity decreases linearly with age difference
       const ageDiff = Math.abs(userA.age - userB.age);
-      const ageSimilarity = Math.max(0, 1 - (ageDiff / 50));
+      const ageSimilarity = Math.max(0, 1 - (ageDiff / 50)); // 50 year difference = 0 similarity
       
       similarityScore += ageSimilarity;
       factorsCount++;
@@ -175,7 +176,7 @@ class FeedbackUtils {
     // Compare preferred movie duration with linear decay
     if (userA.preferredDuration && userB.preferredDuration) {
       const durationDiff = Math.abs(userA.preferredDuration - userB.preferredDuration);
-      const durationSimilarity = Math.max(0, 1 - (durationDiff / 120));
+      const durationSimilarity = Math.max(0, 1 - (durationDiff / 120)); // 2 hour difference = 0 similarity
       
       similarityScore += durationSimilarity;
       factorsCount++;
