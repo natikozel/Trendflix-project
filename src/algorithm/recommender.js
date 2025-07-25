@@ -1,15 +1,55 @@
+/**
+ * Movie Recommendation Engine
+ * 
+ * This module implements a hybrid recommendation system that combines:
+ * 1. Content-based filtering using TF-IDF vectorization of movie reviews
+ * 2. Collaborative filtering through user feedback analysis
+ * 3. Metadata-based filtering using movie attributes (genre, year, duration, etc.)
+ * 4. LLM-enhanced preference extraction from natural language input
+ * 
+ * The algorithm works in the following steps:
+ * 1. Convert user input (text + preferences) into a high-dimensional vector
+ * 2. Compare user vector with pre-computed movie review vectors using cosine similarity
+ * 3. Apply metadata-based weights to refine recommendations
+ * 4. Incorporate historical user feedback to improve future recommendations
+ * 5. Return ranked list of most similar movies
+ * 
+ * @author Trendflix Team
+ * @version 1.0.0
+ */
+
 import VectorProcessor from './movieReviewsToVector.js';
 import UserInputProcessor from './userInputToVector.js';
 import movieDatabaseService from '../lib/db/services/MovieDatabaseService.js';
 import FeedbackUtils from './feedbackUtils.js';
 
+/**
+ * Main recommendation engine class
+ * 
+ * This class orchestrates the entire recommendation process by:
+ * - Processing user input into meaningful vectors
+ * - Computing similarity scores between user preferences and movies
+ * - Applying various weighting factors based on metadata
+ * - Incorporating user feedback to improve recommendations
+ * - Returning personalized movie suggestions
+ */
 class Recommender {
   constructor() {
     this.vectorProcessor = new VectorProcessor();
     this.userProcessor = new UserInputProcessor();
   }
 
-  // Calculate cosine similarity between two vectors
+  /**
+   * Calculate cosine similarity between two vectors
+   * 
+   * Cosine similarity measures the cosine of the angle between two vectors,
+   * providing a value between -1 and 1, where 1 indicates perfect similarity.
+   * This is the core similarity metric used in our recommendation system.
+   * 
+   * @param {Map|Object} vectorA - First vector (can be Map or plain object)
+   * @param {Map|Object} vectorB - Second vector (can be Map or plain object)
+   * @returns {number} - Similarity score between 0 and 1 (0 = no similarity, 1 = identical)
+   */
   calculateCosineSimilarity(vectorA, vectorB) {
     // Safety check for inputs
     if (!vectorA || !vectorB) {
@@ -30,7 +70,7 @@ class Recommender {
         }
       };
       
-      // Get all unique dimensions
+      // Get all unique dimensions from both vectors
       const dimensions = new Set();
       
       // Add keys from vectorA
@@ -55,7 +95,7 @@ class Recommender {
         return 0;
       }
 
-      // Calculate dot product
+      // Calculate dot product and magnitudes for cosine similarity
       let dotProduct = 0;
       let magnitudeA = 0;
       let magnitudeB = 0;
@@ -97,11 +137,30 @@ class Recommender {
     }
   }
 
-  // Apply additional weights based on movie metadata
+  /**
+   * Apply metadata-based weights to refine similarity scores
+   * 
+   * This method implements a multi-factor weighting system that considers:
+   * - Movie title matching (exact, partial, and word-level matches)
+   * - Release year preferences and recency bias
+   * - Popularity scores
+   * - Duration preferences
+   * - Genre preferences and exclusions
+   * - Age-appropriate content filtering
+   * 
+   * The weights are multiplicative, allowing for fine-grained control over
+   * recommendation relevance while maintaining the base similarity score.
+   * 
+   * @param {number} similarity - Base cosine similarity score
+   * @param {Object} movie - Movie metadata object
+   * @param {Object} userPreferences - User preference object
+   * @returns {number} - Weighted similarity score
+   */
   applyMetadataWeights(similarity, movie, userPreferences) {
     let weightedScore = similarity;
     
     // Title matching boost: Check if any of the movie titles match
+    // This leverages LLM-extracted movie titles from user text input
     if (movie?.movieName && userPreferences?.movieTitles && Array.isArray(userPreferences.movieTitles)) {
       const movieTitle = movie.movieName.toLowerCase();
       
@@ -109,23 +168,23 @@ class Recommender {
       for (const title of userPreferences.movieTitles) {
         const titleLower = title.toLowerCase();
         
-        // Exact match (case insensitive)
+        // Exact match (case insensitive) - strongest boost
         if (movieTitle === titleLower) {
           weightedScore *= 1.3;
           break;
         }
         
-        // Partial matches
+        // Partial matches - moderate boost
         if (movieTitle.includes(titleLower) || titleLower.includes(movieTitle)) {
           weightedScore *= 1.1;
           break;
         }
         
-        // Check for multi-word matches
+        // Multi-word matches - calculate word-level similarity
         const movieTitleWords = movieTitle.split(/\s+/);
         const titleWords = titleLower.split(/\s+/);
         
-        // Count matching words
+        // Count matching words (only significant words > 3 characters)
         let matchCount = 0;
         for (const movieWord of movieTitleWords) {
           if (movieWord.length > 3 && titleWords.includes(movieWord)) {
@@ -133,37 +192,39 @@ class Recommender {
           }
         }
         
-        // If multiple words match, apply a boost
+        // If multiple words match, apply proportional boost
         if (matchCount > 1) {
           const matchRatio = matchCount / Math.max(movieTitleWords.length, titleWords.length);
-          weightedScore *= (1.0 + matchRatio * 1.3); // Up to 3x boost
+          weightedScore *= (1.0 + matchRatio * 1.3); // Up to 2.3x boost
           break;
         }
       }
     }
 
-    // Weight by release recency (if available)
+    // Recency bias: Prefer newer movies if user indicates preference
     if (movie?.releaseYear && userPreferences?.preferNewReleases) {
       const currentYear = new Date().getFullYear();
       const age = currentYear - movie.releaseYear;
+      // Exponential decay: newer movies get higher boost
       const recencyBoost = 1 + (Math.max(0, 1 - (age / 10)) * 0.3);
       weightedScore *= recencyBoost;
     }
 
-    // Weight by popularity (if available)
+    // Popularity boost: Leverage crowd wisdom
     if (movie?.popularity) {
       const popularityBoost = 1 + (movie.popularity * 0.2);
       weightedScore *= popularityBoost;
     }
 
-    // Duration preference adjustment
+    // Duration preference: Match user's preferred movie length
     if (userPreferences?.preferredDuration && movie?.duration) {
       const durationDiff = Math.abs(userPreferences.preferredDuration - movie.duration);
+      // Linear decay: closer duration = higher score
       const durationFactor = 1 + (Math.max(0, 1 - (durationDiff / 60)) * 0.1);
       weightedScore *= durationFactor;
     }
 
-    // Check for excluded genres - immediately set score to 0 if any genre matches an excluded genre
+    // Genre exclusion: Hard filter for disliked genres
     if (userPreferences?.excludedGenres && userPreferences.excludedGenres.length > 0 && movie?.genres) {
       // Check if any movie genre is in the excluded list
       const hasExcludedGenre = movie.genres.some(genre => 
@@ -175,7 +236,7 @@ class Recommender {
       }
     }
 
-    // Genre matching (if user has preferred genres)
+    // Genre preference: Boost movies with preferred genres
     if (userPreferences?.preferredGenres && userPreferences?.preferredGenres?.length > 0 && movie?.genres) {
       // Count how many preferred genres match
       const matchingGenres = movie.genres.filter(genre => 
@@ -189,6 +250,7 @@ class Recommender {
       }
     }
 
+    // Year range preference: Prefer movies within specified year range
     if (userPreferences?.yearRange?.minYear && userPreferences?.yearRange?.maxYear && movie?.releaseYear) {
       // First check if the movie is within the range
       const isInRange = movie.releaseYear >= userPreferences.yearRange.minYear && 
@@ -219,6 +281,8 @@ class Recommender {
         weightedScore *= penaltyFactor;
       }
     }
+
+    // Age-appropriate content filtering
     if (userPreferences?.age && movie?.ageRating) {
       const ageRatingOrder = ['G', 'PG', 'PG-13', 'R', 'NC-17'];
       const movieAgeRatingIndex = ageRatingOrder.indexOf(movie.ageRating);
@@ -243,7 +307,26 @@ class Recommender {
     return weightedScore;
   }
 
-  // Get recommendations based on user input
+  /**
+   * Generate personalized movie recommendations
+   * 
+   * This is the main entry point for the recommendation system. It:
+   * 1. Processes user input into a vector representation
+   * 2. Retrieves movie vectors from the database
+   * 3. Computes similarity scores using cosine similarity
+   * 4. Applies metadata-based weights
+   * 5. Incorporates user feedback data
+   * 6. Returns ranked recommendations
+   * 
+   * @param {Object} userInputData - User's input (text + preferences)
+   * @param {Object} options - Configuration options
+   * @param {number} options.maxResults - Maximum number of recommendations (default: 6)
+   * @param {number} options.similarityThreshold - Minimum similarity score (default: 0.03)
+   * @param {boolean} options.includeMetadata - Include movie metadata in results (default: true)
+   * @param {Array} options.preferredGenres - Genre filter for initial movie selection
+   * @param {boolean} options.useFeedbackData - Use feedback to improve recommendations (default: true)
+   * @returns {Promise<Array>} - Array of recommended movies with scores
+   */
   async getRecommendations(userInputData, options = {}) {
     try {      
       const {
@@ -257,6 +340,7 @@ class Recommender {
       // Process user input into vector
       let userVector;
       let userPreferences;
+      
       // Check if the input is already processed (has vector property)
       if (userInputData.vector) {
         userVector = userInputData.vector;
@@ -273,6 +357,7 @@ class Recommender {
         }
       }
 
+      // Merge explicit user preferences with processed preferences
       if (userInputData?.genres) {
         userPreferences.preferredGenres = userInputData.genres;
       }
@@ -295,14 +380,18 @@ class Recommender {
       const movieVectors = await movieDatabaseService.getMovieVectors(
         hasGenrePreferences ? preferredGenres : null
       );
-      // Calculate similarity scores
+      
+      // Calculate similarity scores for all movies
       const results = [];
       for (const [movieId, movieData] of Object.entries(movieVectors)) {
         if (!movieData.vector) continue;
         
+        // Calculate base similarity using cosine similarity
         const similarity = this.calculateCosineSimilarity(userVector, movieData.vector);        
 
+        // Apply metadata-based weights
         let weightedScore = this.applyMetadataWeights(similarity, movieData, userPreferences);
+        
         // Incorporate feedback data if enabled
         if (useFeedbackData) {
           try {

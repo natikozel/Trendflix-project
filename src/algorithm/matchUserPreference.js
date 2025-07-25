@@ -1,8 +1,45 @@
+/**
+ * User Preference Matching Analysis Module
+ * 
+ * This module provides advanced analysis of how well a movie matches a user's
+ * preferences using LLM-powered analysis. It compares the movie's genre vector
+ * characteristics with the user's natural language input to determine a precise
+ * match score.
+ * 
+ * The matching process works by:
+ * 1. Retrieving the movie's genre vector from the database
+ * 2. Analyzing the user's natural language input
+ * 3. Using LLM to assess alignment between movie characteristics and user preferences
+ * 4. Generating a precise match score between 0 and 1
+ * 
+ * Key Features:
+ * - LLM-powered preference analysis
+ * - Genre vector integration
+ * - Precise match scoring (0.00-1.00)
+ * - Natural language understanding
+ * - Comprehensive movie characteristic analysis
+ * 
+ * @author Trendflix Team
+ * @version 1.0.0
+ */
+
 import { generateGeminiResponse } from './LLM.js';
 import GenreVectorService from '../lib/db/services/genreVectorService.js';
 
 /**
  * Prompt template for the LLM to analyze user preference match with movie genre vector
+ * 
+ * This prompt is designed to:
+ * - Provide clear instructions for match analysis
+ * - Ensure consistent scoring methodology
+ * - Generate precise numerical results
+ * - Consider both explicit and implicit user preferences
+ * 
+ * The prompt instructs the LLM to:
+ * - Analyze the movie's 21-dimensional genre vector
+ * - Consider the user's natural language input
+ * - Determine alignment between movie characteristics and user preferences
+ * - Return a precise match score between 0.00 and 1.00
  */
 const MATCH_ANALYSIS_PROMPT = `
 Movie Preference Matching Analysis
@@ -36,10 +73,26 @@ IMPORTANT:
 `;
 
 /**
- * Analyzes how well a movie matches a user's preferences
- * @param {string} userInput - The user's preference text
- * @param {string} movieId - The ID of the movie to analyze
- * @returns {Promise<number>} A float between 0-1 representing the match score
+ * Analyzes how well a movie matches a user's preferences using LLM analysis
+ * 
+ * This function performs a sophisticated analysis by:
+ * 1. Retrieving the movie's genre vector from the database
+ * 2. Preparing the analysis prompt with movie characteristics and user input
+ * 3. Using the LLM to assess the alignment between movie features and user preferences
+ * 4. Validating and normalizing the resulting match score
+ * 
+ * The analysis considers the movie's 21-dimensional genre vector, which includes:
+ * - Content characteristics (Action, Romance, SciFiFantasy, Comedy, ThrillerSuspense)
+ * - Emotional elements (EmotionalDepth, StoryDarkness, Horror)
+ * - Technical aspects (VisualEffects, CinematicScore, DialogueComplexity)
+ * - Audience factors (FamilyFriendliness, Violence, CognitiveLoad)
+ * - Structural elements (Pace, DialogueVsAction, TwistFactor, MovieLength)
+ * - Thematic content (PoliticalSocial, Realism, HumorType)
+ * 
+ * @param {string} userInput - The user's natural language preference description
+ * @param {string} movieId - The ID of the movie to analyze for matching
+ * @returns {Promise<number>} A float between 0-1 representing the precise match score
+ * @throws {Error} If no genre vector is found or LLM analysis fails
  */
 export async function analyzeUserPreferenceMatch(userInput, movieId) {
     try {
@@ -52,20 +105,20 @@ export async function analyzeUserPreferenceMatch(userInput, movieId) {
 
         const movieVector = vector.genreVector;
 
-        // Create the prompt with the movie vector and user input
+        // Create the analysis prompt with the movie vector and user input
         const prompt = MATCH_ANALYSIS_PROMPT
             .replace('{MOVIE_VECTOR}', JSON.stringify(movieVector, null, 2))
             .replace('{USER_INPUT}', userInput);
 
-        // Get the LLM response
+        // Get the LLM response for preference analysis
         const response = await generateGeminiResponse(prompt);
 
-        // Validate the response
+        // Validate the response format
         if (!response || typeof response.matchScore !== 'number') {
             throw new Error('Invalid response format from LLM');
         }
 
-        // Ensure the score is between 0 and 1
+        // Ensure the score is within valid bounds (0 to 1)
         const matchScore = Math.max(0, Math.min(1, response.matchScore));
         
         return matchScore;

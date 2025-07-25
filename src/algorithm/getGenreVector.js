@@ -1,9 +1,27 @@
 /**
- * Get Genre Vector - LLM-based movie genre vector generator
+ * LLM-Based Movie Genre Vector Generator
  * 
- * This module uses an LLM to analyze movie reviews and generate a normalized 
- * vector of 21 genre attributes that sum up to 1.0, representing the movie's
- * key characteristics based on user reviews.
+ * This module uses advanced language model analysis to generate comprehensive
+ * genre vectors for movies based on user reviews. It analyzes review content
+ * to create a 21-dimensional vector representing various movie attributes,
+ * providing a nuanced understanding of each movie's characteristics.
+ * 
+ * The system works by:
+ * 1. Loading movie review data from JSON files
+ * 2. Preparing reviews for LLM analysis
+ * 3. Using structured prompts to extract genre attributes
+ * 4. Generating normalized vectors that sum to 1.0
+ * 5. Storing results in the database for recommendation use
+ * 
+ * Key Features:
+ * - 21-dimensional genre attribute analysis
+ * - LLM-powered content understanding
+ * - Normalized vector generation
+ * - Database persistence and retrieval
+ * - Batch processing capabilities
+ * 
+ * @author Trendflix Team
+ * @version 1.0.0
  */
 
 import fs from 'fs';
@@ -30,6 +48,20 @@ const initDB = async () => {
 
 /**
  * The LLM prompt template for generating genre vectors from movie reviews
+ * 
+ * This prompt is carefully crafted to:
+ * - Extract 21 specific movie attributes from review content
+ * - Ensure normalized values that sum to 1.0
+ * - Provide clear instructions for consistent analysis
+ * - Generate structured JSON output for easy parsing
+ * 
+ * The 21 attributes cover a comprehensive range of movie characteristics:
+ * - Content-based: Action, Romance, SciFiFantasy, Comedy, ThrillerSuspense
+ * - Emotional: EmotionalDepth, StoryDarkness, Horror
+ * - Technical: VisualEffects, CinematicScore, DialogueComplexity
+ * - Audience: FamilyFriendliness, Violence, CognitiveLoad
+ * - Structural: Pace, DialogueVsAction, TwistFactor, MovieLength
+ * - Thematic: PoliticalSocial, Realism, HumorType
  */
 const GENRE_VECTOR_PROMPT = `
 Movie Review Analysis Task
@@ -105,6 +137,11 @@ Here are the reviews to analyze:
 
 /**
  * Loads a movie's review data from a JSON file
+ * 
+ * This function reads the movie review data from the data directory,
+ * which contains JSON files named with the pattern `{movieId}_reviews.json`.
+ * Each file contains an array of review objects with text content.
+ * 
  * @param {string} movieId - The ID of the movie to load reviews for
  * @returns {Object|null} The movie review data or null if not found
  */
@@ -126,9 +163,15 @@ function loadMovieReviews(movieId) {
 
 /**
  * Prepares a subset of reviews for the LLM to analyze
- * @param {Array} reviews - Array of review objects
- * @param {number} maxReviews - Maximum number of reviews to include
- * @returns {string} Formatted review text
+ * 
+ * This function formats the review data for LLM processing by:
+ * - Limiting the number of reviews to avoid token limits
+ * - Formatting reviews as numbered text entries
+ * - Providing clear structure for LLM analysis
+ * 
+ * @param {Array} reviews - Array of review objects with text properties
+ * @param {number} maxReviews - Maximum number of reviews to include (default: 50)
+ * @returns {string} Formatted review text ready for LLM analysis
  */
 function prepareReviewsForLLM(reviews, maxReviews = 50) {
   if (!reviews || reviews.length === 0) {
@@ -138,7 +181,7 @@ function prepareReviewsForLLM(reviews, maxReviews = 50) {
   // Limit the number of reviews to avoid token limits
   const selectedReviews = reviews.slice(0, maxReviews);
   
-  // Format reviews as text
+  // Format reviews as numbered text entries
   return selectedReviews.map((review, index) => {
     return `Review ${index + 1}: "${review.text}"`;
   }).join("\n\n");
@@ -146,29 +189,41 @@ function prepareReviewsForLLM(reviews, maxReviews = 50) {
 
 /**
  * Generate a genre vector for a movie using LLM analysis of its reviews
+ * 
+ * This is the main function that orchestrates the genre vector generation process:
+ * 1. Loads movie review data from JSON files
+ * 2. Prepares reviews for LLM analysis
+ * 3. Sends structured prompt to LLM
+ * 4. Validates and normalizes the response
+ * 5. Saves the result to the database
+ * 
+ * The generated vector contains 21 normalized attributes that sum to 1.0,
+ * providing a comprehensive representation of the movie's characteristics.
+ * 
  * @param {string} movieId - The ID of the movie to analyze
- * @returns {Promise<Object|null>} The genre vector or null if processing failed
+ * @returns {Promise<Object|null>} The genre vector object or null if processing failed
  */
 export async function getGenreVector(movieId) {
   try {
-    // Load movie review data
+    // Load movie review data from JSON file
     const movieData = loadMovieReviews(movieId);
     if (!movieData) {
       throw new Error(`Could not load review data for movie: ${movieId}`);
     }
     
-    // Prepare reviews for the LLM
+    // Prepare reviews for LLM analysis
     const reviewsText = prepareReviewsForLLM(movieData.reviews);
     
     // Create the prompt with reviews inserted
     const prompt = GENRE_VECTOR_PROMPT.replace('{REVIEWS}', reviewsText);
-    // Get the LLM response
+    
+    // Get the LLM response using the Gemini API
     const response = await generateGeminiResponse(prompt);
     
-    // Verify that all keys are present and values sum to 1.0
+    // Validate the response: ensure all values sum to 1.0
     let sum = 0;
     
-    // Calculate sum of values
+    // Calculate sum of all attribute values
     Object.values(response).forEach(value => {
       sum += parseFloat(value);
     });
@@ -178,13 +233,14 @@ export async function getGenreVector(movieId) {
       console.warn(`Values do not sum to 1.0. Actual sum: ${sum}`);
     }
     
+    // Create the result object with movie metadata and genre vector
     const result = {
       movieId: movieData.movie_id,
       movieName: movieData.movie_name,
       genreVector: response
     };
 
-    // Ensure DB is initialized
+    // Ensure database connection is initialized
     await initDB();
     
     // Save to database - update if exists, create if not
@@ -205,14 +261,24 @@ export async function getGenreVector(movieId) {
 
 /**
  * Process all movie files in the data directory and generate genre vectors
- * @returns {Promise<Array>} Array of movie genre vectors
+ * 
+ * This function performs batch processing of all movie review files in the data directory.
+ * It's useful for initializing the database with genre vectors for all available movies.
+ * 
+ * The function:
+ * - Scans the data directory for review files
+ * - Processes each movie individually
+ * - Handles errors gracefully for individual movies
+ * - Returns a summary of successful processing
+ * 
+ * @returns {Promise<Array>} Array of successfully generated movie genre vectors
  */
 export async function processAllMovies() {
   try {
     // Initialize database connection
     await initDB();
     
-    // Get all JSON files in the data directory
+    // Get all JSON files in the data directory that match the review pattern
     const files = fs.readdirSync(DATA_DIR)
       .filter(file => file.endsWith('_reviews.json'));
     
@@ -220,9 +286,8 @@ export async function processAllMovies() {
     
     const results = [];
     
-    // Process each file
+    // Process each file individually
     for (const file of files) {
-    
       try {
         const movieId = file.replace('_reviews.json', '');
         console.log(`Processing movie: ${movieId}`);
@@ -248,8 +313,12 @@ export async function processAllMovies() {
 
 /**
  * Retrieves genre vectors from the database
+ * 
+ * This function provides access to stored genre vectors for use in the recommendation system.
+ * It can retrieve all vectors or filter by a specific movie ID.
+ * 
  * @param {string} movieId - Optional movie ID to filter by
- * @returns {Promise<Array>} Array of genre vectors
+ * @returns {Promise<Array>} Array of genre vectors from the database
  */
 export async function getGenreVectorsFromDB(movieId = null) {
   try {
@@ -273,6 +342,9 @@ export default getGenreVector;
 
 /**
  * Main function to run the script from the terminal
+ * 
+ * This function is called when the script is run directly from the command line.
+ * It processes all movies and provides a summary of the results.
  */
 async function main() {
   try {
@@ -284,5 +356,5 @@ async function main() {
   }
 }
 
-// Run the main function
+// Run the main function if this script is executed directly
 main();

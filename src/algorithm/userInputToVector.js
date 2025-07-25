@@ -1,20 +1,61 @@
+/**
+ * User Input Processing and Vectorization Module
+ * 
+ * This module is responsible for converting natural language user input into
+ * high-dimensional vectors that can be compared with movie review vectors.
+ * It uses a combination of NLP techniques and LLM processing to extract
+ * meaningful features from user preferences.
+ * 
+ * The processing pipeline includes:
+ * 1. Text preprocessing and tokenization
+ * 2. Keyword extraction and weighting
+ * 3. Genre identification and classification
+ * 4. Mood analysis and sentiment scoring
+ * 5. LLM-enhanced preference extraction
+ * 6. Vector normalization and feature engineering
+ * 
+ * Key Features:
+ * - Semantic concept mapping for related terms
+ * - Multi-level keyword weighting based on importance
+ * - LLM-powered movie title extraction
+ * - Demographic and preference integration
+ * - Robust error handling with fallback vectors
+ * 
+ * @author Trendflix Team
+ * @version 1.0.0
+ */
+
 import natural from 'natural';
 import { english } from 'stopwords';
 import { generateGeminiResponse } from './LLM.js';
 
+/**
+ * User Input Processor Class
+ * 
+ * This class handles the complex task of converting user input (both text and
+ * structured preferences) into a vector representation that can be used for
+ * similarity calculations with movie vectors.
+ * 
+ * The processor uses multiple techniques:
+ * - Traditional NLP (tokenization, stopword removal)
+ * - Semantic concept mapping
+ * - LLM-powered intelligent extraction
+ * - Feature engineering for demographics and preferences
+ */
 class UserInputProcessor {
   constructor() {
+    // Initialize NLP components
     this.tokenizer = new natural.WordTokenizer();
     this.stopwords = new Set(english);
-    // this.vectorProcessor = new VectorProcessor();
  
+    // Feature weighting scheme for different input types
     this.weights = {
-      keywords: 0.8,  
-      genres: 0.15,  
-      mood: 0.05     
+      keywords: 0.8,    // Main content words from user text
+      genres: 0.15,     // Genre preferences (explicit or inferred)
+      mood: 0.05        // Emotional tone and mood indicators
     };
 
-    // Expanded genre set with related terms
+    // Comprehensive genre vocabulary with related terms
     this.genres = new Set([
       'action', 'adventure', 'animation', 'comedy', 'crime',
       'documentary', 'drama', 'fantasy', 'horror', 'mystery',
@@ -22,14 +63,15 @@ class UserInputProcessor {
       'philosophical', 'emotional', 'psychological'
     ]);
 
-    // Expanded mood keywords with more nuanced terms
+    // Mood classification keywords for sentiment analysis
     this.moodKeywords = {
       positive: ['fun', 'happy', 'uplifting', 'light', 'inspiring', 'amazing', 'brilliant', 'innovative', 'groundbreaking', 'masterpiece'],
       negative: ['dark', 'serious', 'intense', 'heavy', 'tragic', 'complex', 'challenging', 'thought-provoking'],
       neutral: ['thoughtful', 'complex', 'intelligent', 'artistic', 'philosophical', 'technical', 'scientific', 'dramatic']
     };
 
-    // Add concept mappings to handle semantic relationships
+    // Semantic concept mappings for related terms
+    // This helps capture semantic relationships that simple keyword matching might miss
     this.conceptMappings = {
       'space': ['universe', 'galaxy', 'cosmic', 'interstellar', 'planet', 'stellar'],
       'science': ['scientific', 'technology', 'physics', 'theoretical', 'quantum'],
@@ -38,7 +80,8 @@ class UserInputProcessor {
       'complex': ['complicated', 'intricate', 'deep', 'thought-provoking']
     };
 
-    // Add common movie-related terms that should get higher weights
+    // High-importance terms that should receive boosted weights
+    // These are domain-specific terms that strongly indicate movie preferences
     this.importantTerms = new Set([
       'space', 'time', 'journey', 'adventure', 'exploration',
       'science', 'future', 'technology', 'humanity', 'discovery',
@@ -47,10 +90,18 @@ class UserInputProcessor {
     ]);
   }
 
-  // preprocessText(text) {
-  //   return this.vectorProcessor.preprocessText(text);
-  // }
-
+  /**
+   * Custom tokenization with special handling for compound words
+   * 
+   * This method performs intelligent tokenization that:
+   * - Preserves important compound words (like 'sci-fi')
+   * - Removes punctuation while maintaining word boundaries
+   * - Converts to lowercase for consistency
+   * - Filters out empty tokens
+   * 
+   * @param {string} text - Input text to tokenize
+   * @returns {Array<string>} - Array of processed tokens
+   */
   customTokenize(text) {
     if (!text || typeof text !== 'string') return [];
     
@@ -75,6 +126,16 @@ class UserInputProcessor {
       .map(token => token.toLowerCase());
   }
 
+  /**
+   * Extract and weight keywords from user input
+   * 
+   * This method identifies meaningful keywords and applies semantic concept mapping
+   * to capture related terms that might not be explicitly mentioned but are
+   * semantically related to the user's preferences.
+   * 
+   * @param {string} text - User input text
+   * @returns {Array<Object>} - Array of keywords with weights
+   */
   extractKeywords(text) {
     if (!text) return [];
     
@@ -92,7 +153,7 @@ class UserInputProcessor {
       const baseWeight = this.importantTerms.has(word) ? 1.5 : 1.0;
       processedKeywords.set(word, baseWeight);
       
-      // Add related concept terms
+      // Add related concept terms through semantic mapping
       Object.entries(this.conceptMappings).forEach(([concept, related]) => {
         if (related.includes(word)) {
           // Add the concept with a reduced weight
@@ -116,6 +177,12 @@ class UserInputProcessor {
     }));
   }
 
+  /**
+   * Identify genres mentioned in user input
+   * 
+   * @param {string} text - User input text
+   * @returns {Array<string>} - Array of identified genres
+   */
   identifyGenres(text) {
     if (!text) return [];
     
@@ -125,6 +192,12 @@ class UserInputProcessor {
     );
   }
 
+  /**
+   * Analyze the emotional mood of user input
+   * 
+   * @param {string} text - User input text
+   * @returns {Object} - Mood scores for positive, negative, and neutral
+   */
   analyzeMood(text) {
     if (!text) return { positive: 0, negative: 0, neutral: 0 };
     
@@ -146,6 +219,26 @@ class UserInputProcessor {
     return moodScores;
   }
 
+  /**
+   * Main method to process user input into a vector representation
+   * 
+   * This method orchestrates the entire user input processing pipeline:
+   * 1. Validates and structures input data
+   * 2. Uses LLM to intelligently extract preferences
+   * 3. Combines LLM insights with traditional NLP
+   * 4. Creates a normalized vector representation
+   * 5. Integrates demographic and preference data
+   * 
+   * @param {Object} input - User input object containing text and preferences
+   * @param {string} input.freeText - Natural language description of preferences
+   * @param {number} input.age - User's age
+   * @param {string} input.gender - User's gender
+   * @param {number} input.preferredDuration - Preferred movie duration
+   * @param {boolean} input.preferNewReleases - Preference for newer movies
+   * @param {string} input.preferredLanguage - Preferred language
+   * @param {Array} input.genres - Explicit genre preferences
+   * @returns {Promise<Object>} - Processed input with vector and metadata
+   */
   async processUserInput(input) {
     try {
       if (!input || typeof input !== 'object') {
@@ -163,7 +256,7 @@ class UserInputProcessor {
         ...additionalParams
       } = input;
 
-      // Create a more structured prompt for the LLM that will return data in a usable format
+      // Create a structured prompt for the LLM to extract preferences intelligently
       const llmPrompt = `
         You are a movie recommendation system analyzing user input.
         
@@ -241,7 +334,7 @@ class UserInputProcessor {
       // Create vector representation from the processed data
       const vector = {};
       
-      // Add movie titles as high-weight keywords
+      // Add movie titles as high-weight keywords (strongest signal)
       if (processedData.processedInput.movieTitles.length > 0) {
         processedData.processedInput.movieTitles.forEach(title => {
           vector[`title_${title.toLowerCase().replace(/\s+/g, '_')}`] = 2.0;
@@ -256,13 +349,13 @@ class UserInputProcessor {
         });
       }
       
-      // Add keyword weights
+      // Add keyword weights with semantic concept expansion
       if (processedData.processedInput.keywords.length > 0) {
         processedData.processedInput.keywords.forEach(keyword => {
           const baseWeight = this.importantTerms.has(keyword) ? 1.5 : 1.0;
           vector[keyword] = (this.weights.keywords * baseWeight) / Math.sqrt(processedData.processedInput.keywords.length);
           
-          // Add related concept terms
+          // Add related concept terms through semantic mapping
           Object.entries(this.conceptMappings).forEach(([concept, related]) => {
             if (related.includes(keyword)) {
               vector[concept] = (vector[concept] || 0) + 
@@ -280,7 +373,7 @@ class UserInputProcessor {
         });
       }
       
-      // Add genre weights
+      // Add genre weights (combine LLM-extracted and user-provided genres)
       if (processedData.processedInput.genres.length > 0) {
         // Combine LLM genres with user-provided genres
         const allGenres = [...new Set([
@@ -301,7 +394,7 @@ class UserInputProcessor {
         });
       }
       
-      // Add mood weights
+      // Add mood weights based on emotional tone analysis
       const moodScores = processedData.processedInput.moodScores;
       const moodSum = moodScores.positive + moodScores.negative + moodScores.neutral;
       
@@ -313,14 +406,14 @@ class UserInputProcessor {
         });
       }
       
-      // Add demographic and preference information
-      if (age) vector['age'] = age / 100; // Normalize age
+      // Add demographic and preference information as additional features
+      if (age) vector['age'] = age / 100; // Normalize age to 0-1 range
       if (gender) vector[`gender_${gender}`] = 0.5;
       if (preferredDuration) vector['preferredDuration'] = preferredDuration / 200; // Normalize duration
       if (preferNewReleases) vector['newReleases'] = 0.5;
       if (preferredLanguage) vector[`language_${preferredLanguage.toLowerCase()}`] = 0.5;
       
-      // Add any additional parameters
+      // Add any additional parameters as features
       if (additionalParams && typeof additionalParams === 'object') {
         Object.entries(additionalParams).forEach(([key, value]) => {
           if (typeof value === 'number') {
@@ -333,7 +426,7 @@ class UserInputProcessor {
         });
       }
 
-      // Normalize vector using L2 normalization
+      // Normalize vector using L2 normalization for consistent similarity calculations
       const magnitude = Math.sqrt(
         Object.values(vector).reduce((sum, weight) => sum + weight * weight, 0) || 1
       );
@@ -363,7 +456,7 @@ class UserInputProcessor {
       return result;
     } catch (error) {
       console.error('Error processing user input:', error);
-      // Return a default vector with basic preferences
+      // Return a default vector with basic preferences as fallback
       return {
         processedInput: {
           keywords: [],
