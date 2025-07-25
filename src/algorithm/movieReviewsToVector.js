@@ -1,10 +1,7 @@
 import n from 'natural'
 import { english } from 'stopwords';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+
 
 class VectorProcessor {
   constructor() {
@@ -125,7 +122,7 @@ class VectorProcessor {
         let importanceMultiplier = this.importantTerms.has(term) ? 1.5 : 1.0;
         
         // Check if term is related to any concepts and boost accordingly
-        Object.entries(this.conceptMappings).forEach(([concept, related]) => {
+        Object.entries(this.conceptMappings).forEach(([_, related]) => {
           if (related.includes(term)) {
             importanceMultiplier *= 1.2;
           }
@@ -155,11 +152,7 @@ class VectorProcessor {
     Object.keys(vector).forEach(term => {
       vector[term] = vector[term] / magnitude;
     });
-    
-    // Verify normalization
-    const newMagnitude = Math.sqrt(
-      Object.values(vector).reduce((sum, weight) => sum + weight * weight, 0)
-    );
+  
     
 
     return {
