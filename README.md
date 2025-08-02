@@ -84,7 +84,7 @@ A sophisticated movie recommendation platform that leverages multiple machine le
 
 ## 🔬 Algorithm Deep Dive
 
-### 1. User Input Processing (`userInputToVector.js`)
+### 1. [User Input Processing](https://github.com/natikozel/trendflix/blob/production/src/algorithm/userInputToVector.js) (`userInputToVector.js`)
 **Purpose**: Converts natural language user preferences into mathematical vectors
 **Key Functions**:
 - `processUserInput()` - Main processing pipeline
@@ -94,7 +94,7 @@ A sophisticated movie recommendation platform that leverages multiple machine le
 
 **Algorithm**: Uses NLP tokenization, stopword filtering, and semantic expansion to create weighted keyword vectors.
 
-### 2. Movie Content Vectorization (`movieReviewsToVector.js`)
+### 2. [Movie Content Vectorization](https://github.com/natikozel/trendflix/blob/production/src/algorithm/movieReviewsToVector.js) (`movieReviewsToVector.js`)
 **Purpose**: Transforms movie reviews and metadata into searchable vectors
 **Key Functions**:
 - `processMovie()` - Complete movie processing pipeline
@@ -103,7 +103,7 @@ A sophisticated movie recommendation platform that leverages multiple machine le
 
 **Algorithm**: Implements TF-IDF with custom weighting for movie-specific terms and metadata integration.
 
-### 3. Recommendation Engine (`recommender.js`)
+### 3. [Recommendation Engine](https://github.com/natikozel/trendflix/blob/production/src/algorithm/recommender.js) (`recommender.js`)
 **Purpose**: Core recommendation logic combining multiple algorithms
 **Key Functions**:
 - `getRecommendations()` - Main recommendation pipeline
@@ -113,7 +113,7 @@ A sophisticated movie recommendation platform that leverages multiple machine le
 
 **Algorithm**: Hybrid approach combining cosine similarity, metadata boosting, and feedback learning.
 
-### 4. Similarity Computation (`vectorComparison.js`)
+### 4. [Similarity Computation](https://github.com/natikozel/trendflix/blob/production/src/algorithm/vectorComparison.js) (`vectorComparison.js`)
 **Purpose**: Advanced similarity measurements between user preferences and movies
 **Key Functions**:
 - `compareGenreVectors()` - Genre-specific comparison
