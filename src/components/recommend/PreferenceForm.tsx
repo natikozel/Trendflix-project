@@ -117,17 +117,17 @@ const PreferenceForm = () => {
               Age
             </label>
             <div className="relative">
-              <input
-                type="number"
-                id="age"
-                name="age"
-                value={formData.age}
-                onChange={handleChange}
-                min="13"
-                max="100"
-                className="w-full px-4 py-2.5 bg-gray-700/50 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
-                required
-              />
+                             <input
+                 type="number"
+                 id="age"
+                 name="age"
+                 value={formData.age}
+                 onChange={handleChange}
+                 min="13"
+                 max="100"
+                 className="w-full px-4 py-2.5 bg-gray-800/80 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield] text-white"
+                 required
+               />
               <div className="absolute inset-y-0 right-0 flex items-center">
                 <div className="flex flex-col h-full">
                   <button
@@ -170,13 +170,13 @@ const PreferenceForm = () => {
               name="gender"
               value={formData.gender}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 bg-gray-700/50 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+              className="w-full px-4 py-2.5 bg-gray-800/80 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 text-white"
               required
             >
-              <option value="any">Any</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
+              <option value="any" className="bg-gray-800 text-white">Any</option>
+              <option value="male" className="bg-gray-800 text-white">Male</option>
+              <option value="female" className="bg-gray-800 text-white">Female</option>
+              <option value="other" className="bg-gray-800 text-white">Other</option>
             </select>
           </div>
         </div>
@@ -214,17 +214,17 @@ const PreferenceForm = () => {
             name="preferredLanguage"
             value={formData.preferredLanguage}
             onChange={handleChange}
-            className="w-full px-4 py-2.5 bg-gray-700/50 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+            className="w-full px-4 py-2.5 bg-gray-800/80 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 text-white"
             required
           >
-            <option value="English">English</option>
-            <option value="Spanish">Spanish</option>
-            <option value="French">French</option>
-            <option value="German">German</option>
-            <option value="Japanese">Japanese</option>
-            <option value="Korean">Korean</option>
-            <option value="Chinese">Chinese</option>
-            <option value="Hindi">Hindi</option>
+            <option value="English" className="bg-gray-800 text-white">English</option>
+            <option value="Spanish" className="bg-gray-800 text-white">Spanish</option>
+            <option value="French" className="bg-gray-800 text-white">French</option>
+            <option value="German" className="bg-gray-800 text-white">German</option>
+            <option value="Japanese" className="bg-gray-800 text-white">Japanese</option>
+            <option value="Korean" className="bg-gray-800 text-white">Korean</option>
+            <option value="Chinese" className="bg-gray-800 text-white">Chinese</option>
+            <option value="Hindi" className="bg-gray-800 text-white">Hindi</option>
           </select>
         </div>
 

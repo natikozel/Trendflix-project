@@ -139,8 +139,8 @@ const FeedbackDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredFeedback.map((item) => (
-                    <tr key={item.id} className="border-t border-gray-700 hover:bg-gray-800/50">
+                  {filteredFeedback.map((item, index) => (
+                    <tr key={`${item.id}-${index}`} className="border-t border-gray-700 hover:bg-gray-800/50">
                       <td className="p-3 text-sm">{item.movieId}</td>
                       <td className="p-3">
                         {item.liked ? (

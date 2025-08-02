@@ -200,20 +200,6 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
                 </div>
               </motion.div>
 
-              <motion.div className="mb-4" variants={itemVariants}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm text-gray-400">Match Score</span>
-                  <span className="font-bold text-green-400">{localStorageData.matchScore}%</span>
-                </div>
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: "100%" }}
-                  transition={{ delay: 0.5, duration: 0.8, ease: "easeOut" }}
-                >
-                  <Progress value={localStorageData.matchScore} className="h-1.5 w-48 bg-gray-600" />
-                </motion.div>
-              </motion.div>
-
               <motion.p className="text-gray-300 mb-6 max-w-2xl line-clamp-3 sm:line-clamp-none" variants={itemVariants}>
                 {movie.synopsis}
               </motion.p>

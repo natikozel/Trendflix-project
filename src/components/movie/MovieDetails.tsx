@@ -123,28 +123,28 @@ export default function MovieDetailsPage({ movieData }: { movieData: movieProps 
       <div className="w-full max-w-7xl mx-auto px-4 py-8 flex-grow">
         <Tabs defaultValue="details" className="w-full">
           <TabsList className="mb-6 w-full justify-start overflow-x-auto flex-nowrap">
-            {tabItems.map(tab => (
-              <TabsTrigger key={tab.id} value={tab.id}>{tab.label}</TabsTrigger>
+            {tabItems.map((tab, index) => (
+              <TabsTrigger key={`${tab.id}-${index}-${tab.label}`} value={tab.id}>{tab.label}</TabsTrigger>
             ))}
           </TabsList>
 
           <AnimatePresence mode="sync">
             {/* Details Tab */}
-            <TabsContent value="details" className="space-y-6">
+            <TabsContent key={1} value="details" className="space-y-6">
               <Suspense fallback={<MovieDetailsTabSkeleton />}>
                 <MovieDetailsTab movie={movieData} />
               </Suspense>
             </TabsContent>
 
             {/* Reviews Tab */}
-            <TabsContent value="reviews">
+            <TabsContent key={2} value="reviews">
               <Suspense fallback={<MovieReviewsTabSkeleton />}>
                 <MovieReviewsTab reviews={movieData.reviews as any} />
               </Suspense>
             </TabsContent>
 
             {/* Similar Movies Tab */}
-            <TabsContent value="similar">
+            <TabsContent key={3} value="similar">
               <Suspense fallback={<SimilarMoviesTabSkeleton />}>
                 <SimilarMoviesTab similarMovies={localStorageData?.similarMovies || []} />
               </Suspense>

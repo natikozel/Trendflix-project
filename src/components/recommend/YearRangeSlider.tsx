@@ -92,9 +92,9 @@ const YearRangeSlider = ({ minYear, maxYear, onChange }: YearRangeSliderProps) =
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-gray-200">
+        <div className="px-4 py-2.5 bg-gray-800/80 rounded-lg border border-gray-600 text-white text-sm font-medium">
           {minYear} - {maxYear}
-        </span>
+        </div>
         <div className="flex items-center space-x-2">
           <button
             type="button"

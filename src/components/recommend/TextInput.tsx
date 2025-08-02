@@ -20,7 +20,7 @@ const TextInput = ({ value, onChange, ...props }: TextInputProps) => {
         value={value}
         onChange={onChange}
         rows={4}
-        className="w-full px-4 py-3 bg-gray-700/50 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 text-gray-200 placeholder-gray-400 resize-none"
+        className="w-full px-4 py-3 bg-gray-800/80 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 text-white placeholder-gray-400 resize-none"
       />
       <motion.div
         className="absolute bottom-3 right-3 text-sm text-gray-400 flex items-center space-x-1"

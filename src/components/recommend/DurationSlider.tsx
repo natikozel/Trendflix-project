@@ -25,12 +25,12 @@ const DurationSlider = ({ value, onChange }: DurationSliderProps) => {
       transition={{ duration: 0.5 }}
     >
       <div className="flex justify-between items-center">
-        <motion.span 
-          className="text-sm text-gray-400"
+        <motion.div 
+          className="px-4 py-2.5 bg-gray-800/80 rounded-lg border border-gray-600 text-white text-sm font-medium"
           animate={{ scale: isDragging ? 1.1 : 1 }}
         >
           {formatDuration(value)}
-        </motion.span>
+        </motion.div>
         <div className="flex items-center space-x-2">
           <button
             type="button"

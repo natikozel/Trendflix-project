@@ -23,9 +23,9 @@ const MovieGrid = () => {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {recommendations.map((movie) => (
+      {recommendations.map((movie, index) => (
         <MovieCard
-          key={movie.movieId}
+          key={`${movie.movieId}-${index}`}
           movie={movie as Movie}
         />
       ))}

@@ -46,7 +46,7 @@ export default function MovieReviewsTab({ reviews }: MovieReviewsTabProps) {
       <motion.div className="space-y-6">
         {reviews.map((review, index) => (
           <motion.div
-            key={review.author + review.text.slice(0, 10)}
+            key={`${review.author}-${review.text.slice(0, 10)}-${index}`}
             className="bg-gray-900 rounded-xl p-4 sm:p-6"
             variants={itemVariants}
             custom={index}
@@ -62,17 +62,8 @@ export default function MovieReviewsTab({ reviews }: MovieReviewsTabProps) {
                 </Avatar>
                 <div>
                   <h3 className="font-semibold">{review.author}</h3>
-                  {/* <p className="text-sm text-gray-400">{review.date}</p> */}
                 </div>
               </div>
-              {/* <div className="flex">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`h-4 w-4 ${i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-600"}`}
-                  />
-                ))}
-              </div> */}
             </div>
             <p className="text-gray-300">{review?.text || review as any}</p>
           </motion.div>
