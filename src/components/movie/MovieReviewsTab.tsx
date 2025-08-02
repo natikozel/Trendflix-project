@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/Avatar"
 
 type Review = {
   author: string
