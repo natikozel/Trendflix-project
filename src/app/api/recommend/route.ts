@@ -15,7 +15,6 @@ export async function POST(request: Request) {
     let userInput = await request.json();
     
     const processedResult = await recommender.userProcessor.processUserInput(userInput) as ProcessedResult;
-    
     if (processedResult.validationError) {
       return NextResponse.json({
         validationError: true,
@@ -24,11 +23,7 @@ export async function POST(request: Request) {
     }
     
     userInput.processedData = processedResult;
-    const recommendations = await recommender.getRecommendations(userInput, {
-      maxResults: 6,
-      similarityThreshold: 0.02,
-      includeMetadata: true
-    });
+    const recommendations = await recommender.getRecommendations(userInput);
     
     return NextResponse.json(recommendations);
   } catch (error) {

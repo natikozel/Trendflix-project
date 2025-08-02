@@ -327,24 +327,22 @@ class Recommender {
    * @param {boolean} options.useFeedbackData - Use feedback to improve recommendations (default: true)
    * @returns {Promise<Array>} - Array of recommended movies with scores
    */
-  async getRecommendations(userInputData, options = {}) {
+  async getRecommendations(userInputData) {
     try {      
-      const {
-        maxResults = 6,
-        similarityThreshold = 0.03,
-        includeMetadata = true,
-        preferredGenres = [],
-        useFeedbackData = true
-      } = options;
+      const maxResults = 6;
+      const similarityThreshold = 0.03;
+      const includeMetadata = true;
+      const preferredGenres = [];
+      const useFeedbackData = false;
 
       // Process user input into vector
       let userVector;
       let userPreferences;
       
       // Check if the input is already processed (has vector property)
-      if (userInputData.vector) {
-        userVector = userInputData.vector;
-        userPreferences = userInputData.processedInput?.preferences || {};
+      if (userInputData.processedData.vector) {
+        userVector = userInputData.processedData.vector;
+        userPreferences = userInputData.processedData.processedInput?.preferences || {};
       } else {
         // Process user input into vector if it's not already processed
         const processedData = await this.userProcessor.processUserInput(userInputData);
