@@ -6,7 +6,6 @@ import { Clock, Calendar, Star, Share2, Play, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
 import { Progress } from "@/components/ui/progress"
-import { Check } from "@/components/check"
 import { localStorageData, movieProps } from "./MovieDetails"
 
 const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY || "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJhMTA2YzUxZDIzZTlkYjQ4OGI0MDc4YjA0ODIwMzdhZiIsIm5iZiI6MTc0MzI1OTUzOC44ODIsInN1YiI6IjY3ZTgwNzkyNmIzNjdkNDY5NTY3YmZhNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.xs8URWnkdu6teP6FooMttGgpyfF5qgym8wj1kjLBiKU"
@@ -18,15 +17,10 @@ type MovieHeroProps = {
 }
 
 export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
-  const [isInWatchlist, setIsInWatchlist] = useState(false)
   const [trailerOpen, setTrailerOpen] = useState(false)
   const [trailerUrl, setTrailerUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [trailerError, setTrailerError] = useState<string | null>(null)
-
-  const toggleWatchlist = () => {
-    setIsInWatchlist(!isInWatchlist)
-  }
 
   const fetchTrailer = async (movieName: string, releaseYear: string) => {
     setTrailerError(null)
@@ -228,23 +222,6 @@ export default function MovieHero({ movie, localStorageData }: MovieHeroProps) {
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button className="bg-purple-600 hover:bg-purple-700" onClick={openTrailer}>
                     <Play className="mr-2 h-4 w-4 text-white" /> <span className="text-white">Watch Trailer</span>
-                  </Button>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    variant={isInWatchlist ? "default" : "outline"}
-                    onClick={toggleWatchlist}
-                    className={isInWatchlist ? "bg-green-600 hover:bg-green-700" : ""}
-                  >
-                    {isInWatchlist ? (
-                      <>
-                        <Check className="text-black mr-2 h-4 w-4" /> <span className="">In Watchlist</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="text-white mr-2 h-4 w-4" /> <span className="text-white">Add to Watchlist</span>
-                      </>
-                    )}
                   </Button>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
